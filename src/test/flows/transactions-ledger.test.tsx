@@ -142,6 +142,75 @@ describe('Flow 3: Transaction Lifecycle & Ledger Filtering', () => {
     expect(await screen.findByText('Pet Supplies')).toBeInTheDocument();
   });
 
+  it('splits subcategories by parent category tabs (Essentials, Self-Care & Wants, Wealth / DCA) in TransactionModal', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByText('Net Cash Flow');
+
+    // Open TransactionModal
+    await user.click(screen.getByRole('button', { name: /^log$/i }));
+    expect(screen.getByRole('heading', { name: 'Log Transaction' })).toBeInTheDocument();
+
+    // Verify parent category tabs exist
+    const tabs = screen.getByRole('tablist', { name: /parent categories/i });
+    expect(tabs).toBeInTheDocument();
+    const essentialsTab = screen.getByRole('tab', { name: /essentials/i });
+    const selfCareTab = screen.getByRole('tab', { name: /self-care/i });
+    const wealthTab = screen.getByRole('tab', { name: /wealth/i });
+
+    expect(essentialsTab).toHaveAttribute('aria-selected', 'true');
+    expect(selfCareTab).toHaveAttribute('aria-selected', 'false');
+    expect(wealthTab).toHaveAttribute('aria-selected', 'false');
+
+    // Essentials subcategories are visible
+    expect(screen.getByRole('button', { name: /^groceries$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^housing & utilities$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^dining & drinks$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^investments & wealth$/i })).not.toBeInTheDocument();
+
+    // Switch to Self-Care & Wants tab
+    await user.click(selfCareTab);
+    expect(selfCareTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /^dining & drinks$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^entertainment$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^groceries$/i })).not.toBeInTheDocument();
+
+    // Switch to Wealth / DCA tab
+    await user.click(wealthTab);
+    expect(wealthTab).toHaveAttribute('aria-selected', 'true');
+    const investChip = screen.getByRole('button', { name: /^investments & wealth$/i });
+    expect(investChip).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^dining & drinks$/i })).not.toBeInTheDocument();
+
+    // Log a transaction under Wealth / DCA
+    const amountInput = screen.getByPlaceholderText('0.00');
+    await user.type(amountInput, '150');
+    const titleInput = screen.getByPlaceholderText(/supermarket, cafe, rent/i);
+    await user.type(titleInput, 'Monthly ETF Index Fund');
+    await user.click(screen.getByRole('button', { name: /record transaction/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Log Transaction' })).not.toBeInTheDocument();
+    });
+
+    // Verify transaction in DB has cat-investments
+    const allTxs = await db.transactions.toArray();
+    const tx = allTxs.find(t => t.title === 'Monthly ETF Index Fund');
+    expect(tx).toBeDefined();
+    expect(tx?.categoryId).toBe('cat-investments');
+    expect(tx?.amount).toBe(150);
+
+    // Now open modal again and switch to Income Inflow -> parent tabs should not be rendered
+    await user.click(screen.getByRole('button', { name: /^log$/i }));
+    await user.click(screen.getByRole('button', { name: /income inflow/i }));
+    expect(screen.queryByRole('tablist', { name: /parent categories/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /salary \/ income/i })).toBeInTheDocument();
+
+    // Close modal
+    await user.keyboard('{Escape}');
+  });
+
   it('filters, searches, edits, and deletes transactions in LedgerTab', async () => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     await initializeDatabase();

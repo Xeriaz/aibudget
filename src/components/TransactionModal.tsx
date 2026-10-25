@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Calendar, FileText, Check, Trash2, Tag } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Transaction, Category } from '../types';
+import type { Transaction, Category, BucketType } from '../types';
 import { db } from '../db/db';
 import { CategoryIcon, AVAILABLE_ICONS } from './CategoryIcon';
-import { triggerHaptic } from '../lib/calculations';
+import { triggerHaptic, resolveCategoryBucket } from '../lib/calculations';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -14,6 +14,12 @@ interface TransactionModalProps {
   onSaved: () => void;
   onDeleted?: (id: string) => void;
 }
+
+const PARENT_BUCKET_TABS: { key: BucketType; label: string; badgeColor: string }[] = [
+  { key: 'essentials', label: 'Essentials', badgeColor: 'bg-emerald-500' },
+  { key: 'selfCareAndWants', label: 'Self-Care & Wants', badgeColor: 'bg-purple-500' },
+  { key: 'investments', label: 'Wealth / DCA', badgeColor: 'bg-teal-500' }
+];
 
 function getFilteredCategoriesForType(categories: Category[], txType: 'expense' | 'income'): Category[] {
   return categories.filter(c => {
@@ -42,6 +48,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [note, setNote] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [dateStr, setDateStr] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [activeBucket, setActiveBucket] = useState<BucketType>('essentials');
+  const [bucketSelectedCategory, setBucketSelectedCategory] = useState<Record<BucketType, string>>({
+    essentials: '',
+    selfCareAndWants: '',
+    investments: ''
+  });
 
   // Quick category creation modal state
   const [showNewCatModal, setShowNewCatModal] = useState<boolean>(false);
@@ -55,6 +67,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     [categories, type]
   );
 
+  const displayedCategories = useMemo(() => {
+    if (type === 'income') {
+      return filteredCategories;
+    }
+    return filteredCategories.filter(c => resolveCategoryBucket(c) === activeBucket);
+  }, [filteredCategories, type, activeBucket]);
+
   // Initialize form state when modal opens or transactionToEdit changes
   useEffect(() => {
     if (!isOpen) return;
@@ -65,6 +84,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setNote(transactionToEdit.note || '');
       setCategoryId(transactionToEdit.categoryId || '');
       setDateStr(transactionToEdit.transactionDate || format(new Date(), 'yyyy-MM-dd'));
+      if (transactionToEdit.categoryId) {
+        const cat = categories.find(c => c.id === transactionToEdit.categoryId);
+        if (cat) {
+          const b = resolveCategoryBucket(cat);
+          setActiveBucket(b);
+          setBucketSelectedCategory(prev => ({ ...prev, [b]: cat.id }));
+        }
+      }
     } else {
       setType('expense');
       setAmountStr('');
@@ -72,7 +99,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setNote('');
       setDateStr(format(new Date(), 'yyyy-MM-dd'));
       const expenseCats = getFilteredCategoriesForType(categories, 'expense');
-      setCategoryId(expenseCats[0]?.id || categories[0]?.id || '');
+      const essentialsCat = expenseCats.find(c => resolveCategoryBucket(c) === 'essentials');
+      const defaultCat = essentialsCat || expenseCats[0] || categories[0];
+      const defaultId = defaultCat?.id || '';
+      setCategoryId(defaultId);
+      if (defaultCat) {
+        const b = resolveCategoryBucket(defaultCat);
+        setActiveBucket(b);
+        setBucketSelectedCategory(prev => ({ ...prev, [b]: defaultId }));
+      }
     }
     setShowNewCatModal(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,7 +119,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     if (filteredCategories.length === 0) return;
     const isValid = filteredCategories.some(c => c.id === categoryId);
     if (!isValid) {
-      setCategoryId(filteredCategories[0].id);
+      const fallback = type === 'expense'
+        ? (filteredCategories.find(c => resolveCategoryBucket(c) === 'essentials') || filteredCategories[0])
+        : filteredCategories[0];
+      setCategoryId(fallback.id);
+      if (type === 'expense') {
+        const b = resolveCategoryBucket(fallback);
+        setActiveBucket(b);
+        setBucketSelectedCategory(prev => ({ ...prev, [b]: fallback.id }));
+      }
     }
   }, [type, filteredCategories, categoryId, isOpen]);
 
@@ -111,7 +154,27 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setType(nextType);
     const nextFiltered = getFilteredCategoriesForType(categories, nextType);
     if (nextFiltered.length > 0 && !nextFiltered.some(c => c.id === categoryId)) {
-      setCategoryId(nextFiltered[0].id);
+      const fallback = nextType === 'expense'
+        ? (nextFiltered.find(c => resolveCategoryBucket(c) === 'essentials') || nextFiltered[0])
+        : nextFiltered[0];
+      setCategoryId(fallback.id);
+      if (nextType === 'expense') {
+        const b = resolveCategoryBucket(fallback);
+        setActiveBucket(b);
+        setBucketSelectedCategory(prev => ({ ...prev, [b]: fallback.id }));
+      }
+    }
+  };
+
+  const handleBucketTabClick = (bucket: BucketType) => {
+    triggerHaptic(10);
+    setActiveBucket(bucket);
+    const bucketCats = filteredCategories.filter(c => resolveCategoryBucket(c) === bucket);
+    if (bucketCats.length > 0) {
+      const rememberedId = bucketSelectedCategory[bucket];
+      const targetCat = bucketCats.find(c => c.id === rememberedId) || bucketCats[0];
+      setCategoryId(targetCat.id);
+      setBucketSelectedCategory(prev => ({ ...prev, [bucket]: targetCat.id }));
     }
   };
 
@@ -192,6 +255,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     await db.categories.add(newCat);
     triggerHaptic(20);
     setCategoryId(newCat.id);
+    setActiveBucket(newCatBucket);
+    setBucketSelectedCategory(prev => ({ ...prev, [newCatBucket]: newCat.id }));
     setShowNewCatModal(false);
     setNewCatName('');
     onSaved();
@@ -219,7 +284,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       );
       if (categoryId === cat.id) {
         const remaining = filteredCategories.filter(c => c.id !== cat.id);
-        setCategoryId(remaining[0]?.id || '');
+        const nextInSameBucket = remaining.find(c => resolveCategoryBucket(c) === activeBucket);
+        const fallback = nextInSameBucket || remaining[0];
+        setCategoryId(fallback?.id || '');
+        if (fallback) {
+          const b = resolveCategoryBucket(fallback);
+          setActiveBucket(b);
+          setBucketSelectedCategory(prev => ({ ...prev, [b]: fallback.id }));
+        }
       }
       onSaved();
     }
@@ -347,7 +419,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
-          {/* Category Horizontal Selector */}
+          {/* Category Selector with Solution 3 Parent Tabs */}
           <div className="w-full min-w-0">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
@@ -355,54 +427,120 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </label>
               <button
                 type="button"
-                onClick={() => setShowNewCatModal(true)}
+                onClick={() => {
+                  if (type === 'expense') {
+                    setNewCatBucket(activeBucket);
+                  }
+                  setShowNewCatModal(true);
+                }}
                 className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 shrink-0"
               >
                 <Plus size={14} /> New Category
               </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 pt-1 no-scrollbar w-full min-w-0 overscroll-x-contain">
-              {filteredCategories.map(cat => {
-                const isSelected = categoryId === cat.id;
-                return (
-                  <div key={cat.id} className="relative flex items-center shrink-0">
+            {/* Parent Category Segmented Tabs (for Expenses) */}
+            {type === 'expense' && (
+              <div
+                role="tablist"
+                aria-label="Parent Categories"
+                className="grid grid-cols-3 p-1 mb-3 bg-slate-100 dark:bg-black/40 rounded-2xl border border-slate-200/80 dark:border-white/5"
+              >
+                {PARENT_BUCKET_TABS.map(tab => {
+                  const isActive = activeBucket === tab.key;
+                  return (
                     <button
+                      key={tab.key}
                       type="button"
-                      onClick={() => {
-                        triggerHaptic(10);
-                        setCategoryId(cat.id);
-                      }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all border ${
-                        !cat.isDefault ? 'pr-7' : ''
-                      } ${
-                        isSelected
-                          ? 'border-indigo-500 bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-white shadow-sm'
-                          : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-neutral-900/70 text-slate-700 dark:text-neutral-300 hover:border-slate-300 dark:hover:border-white/20'
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => handleBucketTabClick(tab.key)}
+                      className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 text-center ${
+                        isActive
+                          ? 'bg-white dark:bg-[#1a1a24] text-slate-900 dark:text-white shadow-sm border border-slate-200/60 dark:border-white/10'
+                          : 'text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-white'
                       }`}
                     >
-                      <div
-                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: `${cat.colorHex}25`, color: cat.colorHex }}
-                      >
-                        <CategoryIcon iconName={cat.iconName} size={14} />
-                      </div>
-                      <span>{cat.name}</span>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${tab.badgeColor}`}
+                        aria-hidden="true"
+                      />
+                      {tab.key === 'selfCareAndWants' ? (
+                        <>
+                          <span className="hidden min-[380px]:inline">Self-Care & Wants</span>
+                          <span className="min-[380px]:hidden">Self-Care</span>
+                        </>
+                      ) : (
+                        <span>{tab.label}</span>
+                      )}
                     </button>
-                    {!cat.isDefault && (
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Subcategories (Wrapped Grid) */}
+            <div className="flex flex-wrap gap-2 pt-0.5 pb-1 w-full min-w-0">
+              {displayedCategories.length === 0 ? (
+                <div className="py-3 px-1 text-center w-full text-xs text-slate-400 dark:text-neutral-500">
+                  No categories in this group.{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCatBucket(activeBucket);
+                      setShowNewCatModal(true);
+                    }}
+                    className="text-indigo-600 dark:text-indigo-400 underline font-medium ml-1"
+                  >
+                    Create one
+                  </button>
+                </div>
+              ) : (
+                displayedCategories.map(cat => {
+                  const isSelected = categoryId === cat.id;
+                  return (
+                    <div key={cat.id} className="relative flex items-center shrink-0">
                       <button
                         type="button"
-                        onClick={e => handleDeleteCustomCategory(e, cat)}
-                        title={`Delete category ${cat.name}`}
-                        aria-label={`Delete category ${cat.name}`}
-                        className="absolute right-1.5 p-1 rounded-md text-slate-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400 transition-colors"
+                        onClick={() => {
+                          triggerHaptic(10);
+                          setCategoryId(cat.id);
+                          if (type === 'expense') {
+                            const b = resolveCategoryBucket(cat);
+                            setBucketSelectedCategory(prev => ({ ...prev, [b]: cat.id }));
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all border ${
+                          !cat.isDefault ? 'pr-7' : ''
+                        } ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-white shadow-sm font-semibold'
+                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-neutral-900/70 text-slate-700 dark:text-neutral-300 hover:border-slate-300 dark:hover:border-white/20'
+                        }`}
                       >
-                        <X size={12} />
+                        <div
+                          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${cat.colorHex}25`, color: cat.colorHex }}
+                        >
+                          <CategoryIcon iconName={cat.iconName} size={14} />
+                        </div>
+                        <span>{cat.name}</span>
                       </button>
-                    )}
-                  </div>
-                );
-              })}
+                      {!cat.isDefault && (
+                        <button
+                          type="button"
+                          onClick={e => handleDeleteCustomCategory(e, cat)}
+                          title={`Delete category ${cat.name}`}
+                          aria-label={`Delete category ${cat.name}`}
+                          className="absolute right-1.5 p-1 rounded-md text-slate-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -527,21 +665,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
                 <div>
                   <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-                    Icon
+                    Select Icon
                   </label>
-                  <div className="grid grid-cols-6 gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 dark:bg-black/40 rounded-xl border border-slate-200 dark:border-white/5">
-                    {AVAILABLE_ICONS.map(icon => (
+                  <div className="flex gap-2 flex-wrap max-h-36 overflow-y-auto p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200/60 dark:border-white/5">
+                    {AVAILABLE_ICONS.map(iconKey => (
                       <button
-                        key={icon}
+                        key={iconKey}
                         type="button"
-                        onClick={() => setNewCatIcon(icon)}
-                        className={`p-2 rounded-lg flex items-center justify-center transition-all ${
-                          newCatIcon === icon
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-white/5'
+                        onClick={() => setNewCatIcon(iconKey)}
+                        className={`p-2 rounded-lg transition-all ${
+                          newCatIcon === iconKey
+                            ? 'bg-indigo-500 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-200 dark:hover:bg-white/5'
                         }`}
                       >
-                        <CategoryIcon iconName={icon} size={18} />
+                        <CategoryIcon iconName={iconKey} size={16} />
                       </button>
                     ))}
                   </div>
@@ -549,18 +687,18 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             </div>
 
-            <div className="pt-4 pb-safe flex gap-3">
+            <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowNewCatModal(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 font-semibold text-sm hover:bg-slate-100 dark:hover:bg-white/5"
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-medium border border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-white/5"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleCreateCategory}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md shadow-indigo-600/30"
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
               >
                 Create Category
               </button>
