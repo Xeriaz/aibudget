@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "BASE_PATH=/aibudget/ npm run build && git checkout -B gh-pages && cp -r dist/* . && git add -f index.html manifest.webmanifest sw.js workbox-*.js assets favicon.svg icon.svg pwa-*.svg && git commit -m 'Deploy update' && git push -u origin gh-pages --force && git checkout main"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
