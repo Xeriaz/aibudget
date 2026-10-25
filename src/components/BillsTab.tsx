@@ -1,0 +1,326 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Calendar,
+  Plus,
+  Zap,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+  Repeat,
+  Flame,
+  Clock,
+  ChevronRight,
+  TrendingUp,
+  Power
+} from 'lucide-react';
+import { format, parseISO, isThisMonth } from 'date-fns';
+import type { RecurringPayment, Category } from '../types';
+import {
+  formatCurrency,
+  getDaysUntilDue,
+  getMonthlyMultiplier,
+  markBillAsPaid,
+  triggerHaptic
+} from '../lib/calculations';
+import { CategoryIcon } from './CategoryIcon';
+import { db } from '../db/db';
+
+interface BillsTabProps {
+  recurring: RecurringPayment[];
+  categories: Category[];
+  onOpenAddModal: () => void;
+  onSelectToEdit: (rec: RecurringPayment) => void;
+  onRefresh: () => void;
+}
+
+export const BillsTab: React.FC<BillsTabProps> = ({
+  recurring,
+  categories,
+  onOpenAddModal,
+  onSelectToEdit,
+  onRefresh
+}) => {
+  const [filterActiveOnly, setFilterActiveOnly] = useState(true);
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, Category>();
+    categories.forEach(c => map.set(c.id, c));
+    return map;
+  }, [categories]);
+
+  // Calculations for hero metrics
+  const { monthlyBurn, annualCommitment, activeCount } = useMemo(() => {
+    let monthly = 0;
+    let count = 0;
+    for (const r of recurring) {
+      if (r.isActive) {
+        monthly += r.amount * getMonthlyMultiplier(r.billingCycle);
+        count++;
+      }
+    }
+    return {
+      monthlyBurn: monthly,
+      annualCommitment: monthly * 12,
+      activeCount: count
+    };
+  }, [recurring]);
+
+  // Categorize recurring bills into sections
+  const { dueWithin7Days, dueThisMonth, laterCommitments } = useMemo(() => {
+    const within7: (RecurringPayment & { daysLeft: number })[] = [];
+    const thisMonth: (RecurringPayment & { daysLeft: number })[] = [];
+    const later: (RecurringPayment & { daysLeft: number })[] = [];
+
+    const list = filterActiveOnly ? recurring.filter(r => r.isActive) : recurring;
+
+    for (const r of list) {
+      const daysLeft = getDaysUntilDue(r.nextDueDate);
+      const item = { ...r, daysLeft };
+      const parsedDate = parseISO(r.nextDueDate);
+
+      if (daysLeft <= 7) {
+        within7.push(item);
+      } else if (isThisMonth(parsedDate)) {
+        thisMonth.push(item);
+      } else {
+        later.push(item);
+      }
+    }
+
+    within7.sort((a, b) => a.daysLeft - b.daysLeft);
+    thisMonth.sort((a, b) => a.daysLeft - b.daysLeft);
+    later.sort((a, b) => a.daysLeft - b.daysLeft);
+
+    return {
+      dueWithin7Days: within7,
+      dueThisMonth: thisMonth,
+      laterCommitments: later
+    };
+  }, [recurring, filterActiveOnly]);
+
+  const handleMarkPaid = async (e: React.MouseEvent, bill: RecurringPayment) => {
+    e.stopPropagation();
+    await markBillAsPaid(bill);
+    onRefresh();
+  };
+
+  const handleToggleActive = async (e: React.MouseEvent, bill: RecurringPayment) => {
+    e.stopPropagation();
+    triggerHaptic(15);
+    await db.recurringPayments.update(bill.id, {
+      isActive: !bill.isActive,
+      updatedAt: new Date().toISOString()
+    });
+    onRefresh();
+  };
+
+  const renderBillRow = (bill: RecurringPayment & { daysLeft: number }) => {
+    const cat = bill.categoryId ? categoryMap.get(bill.categoryId) : undefined;
+    const isOverdue = bill.daysLeft < 0;
+    const isToday = bill.daysLeft === 0;
+    const isTomorrow = bill.daysLeft === 1;
+
+    let badgeText = `In ${bill.daysLeft}d`;
+    let badgeClass = 'bg-white/10 text-neutral-300 border-white/10';
+    if (isOverdue) {
+      badgeText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
+      badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+    } else if (isToday) {
+      badgeText = 'Due Today';
+      badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse';
+    } else if (isTomorrow) {
+      badgeText = 'Tomorrow';
+      badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+    }
+
+    const monthlyCost = bill.amount * getMonthlyMultiplier(bill.billingCycle);
+
+    return (
+      <div
+        key={bill.id}
+        onClick={() => {
+          triggerHaptic(10);
+          onSelectToEdit(bill);
+        }}
+        className={`group flex items-center justify-between p-3.5 rounded-2xl bg-neutral-900/80 border transition-all cursor-pointer ${
+          bill.isActive
+            ? 'border-white/5 hover:border-white/20'
+            : 'border-white/5 opacity-50 bg-neutral-950'
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: `${cat?.colorHex || '#8b5cf6'}25`,
+              color: cat?.colorHex || '#8b5cf6'
+            }}
+          >
+            <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
+                {bill.title}
+              </span>
+              {bill.isAutoPay && (
+                <span title="Auto-debit">
+                  <Zap size={12} className="text-indigo-400 shrink-0" />
+                </span>
+              )}
+              {bill.reminderEnabled && (
+                <span title={`Reminder ${bill.reminderDaysBefore}d before`}>
+                  <Bell size={12} className="text-amber-400 shrink-0" />
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
+                {badgeText}
+              </span>
+              <span className="text-xs text-neutral-400 capitalize">
+                {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <div className="text-sm font-extrabold text-white">
+              {formatCurrency(bill.amount, bill.currencyCode)}
+            </div>
+            {bill.billingCycle !== 'monthly' && (
+              <div className="text-[10px] text-neutral-400">
+                ~{formatCurrency(monthlyCost)}/mo
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={e => handleMarkPaid(e, bill)}
+            className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+            title="Mark Paid & Advance Due Date"
+          >
+            <CheckCircle2 size={13} /> Paid
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-5 animate-in fade-in duration-200">
+      {/* Header action */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <Calendar size={18} className="text-indigo-400" /> Subscriptions & Recurring Bills
+        </h2>
+        <button
+          onClick={() => {
+            triggerHaptic(10);
+            onOpenAddModal();
+          }}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
+        >
+          <Plus size={14} /> Add Bill
+        </button>
+      </div>
+
+      {/* Hero Burn Projection Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/60 via-neutral-900/90 to-neutral-950 border border-indigo-500/20 p-5 shadow-2xl backdrop-blur-xl space-y-4">
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Flame size={14} className="text-orange-400" /> Committed Fixed Burn
+          </span>
+          <span className="text-xs text-neutral-400 font-medium">
+            {activeCount} active commitment{activeCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-1">
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5">
+            <span className="text-xs text-neutral-400 block mb-1">Monthly Burn</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-white">
+              {formatCurrency(monthlyBurn)}
+            </span>
+          </div>
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5">
+            <span className="text-xs text-neutral-400 block mb-1">Annual Commitment</span>
+            <span className="text-xl sm:text-2xl font-extrabold text-indigo-300">
+              {formatCurrency(annualCommitment)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Toggle */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+          Scheduled Bills
+        </span>
+        <button
+          onClick={() => {
+            triggerHaptic(5);
+            setFilterActiveOnly(!filterActiveOnly);
+          }}
+          className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+        >
+          {filterActiveOnly ? 'Show All (incl. Paused)' : 'Show Active Only'}
+        </button>
+      </div>
+
+      {/* Section 1: Due Within 7 Days */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-1 text-xs font-bold text-amber-400 uppercase tracking-wider">
+          <Clock size={14} /> Due Within 7 Days ({dueWithin7Days.length})
+        </div>
+        {dueWithin7Days.length === 0 ? (
+          <div className="py-4 px-4 text-xs text-neutral-500 bg-neutral-900/40 rounded-2xl border border-white/5">
+            No bills due in the next 7 days.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {dueWithin7Days.map(renderBillRow)}
+          </div>
+        )}
+      </div>
+
+      {/* Section 2: Due This Month */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center gap-2 px-1 text-xs font-bold text-neutral-400 uppercase tracking-wider">
+          <Calendar size={14} /> Due Later This Month ({dueThisMonth.length})
+        </div>
+        {dueThisMonth.length === 0 ? (
+          <div className="py-4 px-4 text-xs text-neutral-500 bg-neutral-900/40 rounded-2xl border border-white/5">
+            No remaining bills due later this month.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {dueThisMonth.map(renderBillRow)}
+          </div>
+        )}
+      </div>
+
+      {/* Section 3: Later Commitments */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center gap-2 px-1 text-xs font-bold text-neutral-400 uppercase tracking-wider">
+          <Repeat size={14} /> Future & Long-Term Cycles ({laterCommitments.length})
+        </div>
+        {laterCommitments.length === 0 ? (
+          <div className="py-4 px-4 text-xs text-neutral-500 bg-neutral-900/40 rounded-2xl border border-white/5">
+            No future recurring commitments scheduled beyond this month.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {laterCommitments.map(renderBillRow)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
