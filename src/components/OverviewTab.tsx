@@ -34,7 +34,7 @@ interface OverviewTabProps {
   recurring: RecurringPayment[];
   settings: PlanSettings;
   onRefresh: () => void;
-  onOpenFastAdd: () => void;
+  onOpenFastAdd?: () => void;
   onSelectTransactionToEdit: (tx: Transaction) => void;
   onNavigateToTab: (tab: 'overview' | 'ledger' | 'bills' | 'settings') => void;
 }
@@ -47,7 +47,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   recurring,
   settings,
   onRefresh,
-  onOpenFastAdd,
   onNavigateToTab
 }) => {
   const [billsTimeframe, setBillsTimeframe] = useState<'7' | '30'>('7');
@@ -106,46 +105,34 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Period Switcher */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 shadow-inner">
-            <button
-              onClick={handlePrevMonth}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
-              aria-label="Previous Month"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="px-3 text-sm font-bold tracking-tight text-white min-w-32 text-center">
-              {format(currentDate, 'MMMM yyyy')}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
-              aria-label="Next Month"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {!isViewingToday && (
-            <button
-              onClick={handleResetToToday}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 active:scale-95 transition-all"
-            >
-              Current Month
-            </button>
-          )}
+        <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 shadow-inner">
+          <button
+            onClick={handlePrevMonth}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+            aria-label="Previous Month"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span className="px-3 text-sm font-bold tracking-tight text-white min-w-32 text-center">
+            {format(currentDate, 'MMMM yyyy')}
+          </span>
+          <button
+            onClick={handleNextMonth}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+            aria-label="Next Month"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
 
-        <button
-          onClick={() => {
-            triggerHaptic(10);
-            onOpenFastAdd();
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
-        >
-          <Sparkles size={14} /> + Fast Log
-        </button>
+        {!isViewingToday && (
+          <button
+            onClick={handleResetToToday}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 active:scale-95 transition-all"
+          >
+            Current Month
+          </button>
+        )}
       </div>
 
       {/* Net Cash Flow Hero Card */}
