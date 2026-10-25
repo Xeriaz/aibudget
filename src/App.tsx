@@ -5,10 +5,7 @@ import {
   CalendarClock,
   Sliders,
   Plus,
-  Sun,
-  Moon,
-  ShieldCheck,
-  Smartphone
+  ShieldCheck
 } from 'lucide-react';
 import { db, initializeDatabase, DEFAULT_SETTINGS } from './db/db';
 import type { Transaction, Category, RecurringPayment, PlanSettings } from './types';
@@ -54,11 +51,6 @@ export default function App() {
     }
     localStorage.setItem('aibudget_theme', theme);
   }, [theme]);
-
-  const toggleTheme = () => {
-    triggerHaptic(10);
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   // Load all DB data
   const loadData = useCallback(async () => {
@@ -117,35 +109,35 @@ export default function App() {
 
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center text-white space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center animate-pulse">
-          <Sparkles className="w-6 h-6 text-indigo-400" />
+      <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] flex flex-col items-center justify-center text-slate-900 dark:text-white space-y-4 transition-colors">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 dark:bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center animate-pulse">
+          <Sparkles className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div className="text-center">
           <div className="text-lg font-bold tracking-tight">aiBudget</div>
-          <div className="text-xs text-neutral-500">Preparing encrypted offline storage...</div>
+          <div className="text-xs text-slate-500 dark:text-neutral-500">Preparing encrypted offline storage...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-neutral-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-neutral-100 flex flex-col font-sans selection:bg-indigo-500/20 dark:selection:bg-indigo-500/30 selection:text-indigo-700 dark:selection:text-indigo-200 transition-colors duration-200">
       {/* Top Header / App Bar */}
-      <header className="sticky top-0 z-30 pt-safe bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 transition-colors">
+      <header className="sticky top-0 z-30 pt-safe bg-white/85 dark:bg-[#09090b]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/5 transition-colors">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 p-0.5 shadow-lg shadow-indigo-600/20 flex items-center justify-center">
-              <div className="w-full h-full bg-[#09090b] rounded-[10px] flex items-center justify-center">
-                <span className="text-xs font-black text-indigo-400 tracking-tighter">ai</span>
+              <div className="w-full h-full bg-white dark:bg-[#09090b] rounded-[10px] flex items-center justify-center transition-colors">
+                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">ai</span>
               </div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 leading-none">
-                <span className="text-base font-extrabold tracking-tight text-white">
-                  ai<span className="text-indigo-400">Budget</span>
+                <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  ai<span className="text-indigo-600 dark:text-indigo-400">Budget</span>
                 </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <ShieldCheck size={9} /> Offline
                 </span>
               </div>
@@ -153,14 +145,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white active:scale-95 transition-all"
-              title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-
             <button
               onClick={handleOpenAddTx}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
@@ -181,6 +165,7 @@ export default function App() {
             categories={categories}
             recurring={recurring}
             settings={settings}
+            theme={theme}
             onRefresh={loadData}
             onOpenFastAdd={handleOpenAddTx}
             onSelectTransactionToEdit={handleSelectTxToEdit}
@@ -212,13 +197,15 @@ export default function App() {
           <SettingsTab
             settings={settings}
             categories={categories}
+            theme={theme}
+            onThemeChange={setTheme}
             onRefresh={loadData}
           />
         )}
       </main>
 
       {/* Persistent Bottom Mobile Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0e0e13]/85 backdrop-blur-2xl border-t border-white/10 pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-[#0e0e13]/85 backdrop-blur-2xl border-t border-slate-200/80 dark:border-white/10 pb-safe transition-colors">
         <div className="max-w-xl mx-auto px-3 h-16 flex items-center justify-around relative">
           {/* Tab 1: Overview */}
           <button
@@ -228,8 +215,8 @@ export default function App() {
             }}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
               activeTab === 'overview'
-                ? 'text-indigo-400 font-bold'
-                : 'text-neutral-400 hover:text-neutral-200'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                : 'text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-200'
             }`}
           >
             <div
@@ -250,8 +237,8 @@ export default function App() {
             }}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
               activeTab === 'ledger'
-                ? 'text-indigo-400 font-bold'
-                : 'text-neutral-400 hover:text-neutral-200'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                : 'text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-200'
             }`}
           >
             <div
@@ -268,7 +255,7 @@ export default function App() {
           <div className="flex-1 flex justify-center -mt-5">
             <button
               onClick={handleOpenAddTx}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-indigo-400 text-white shadow-xl shadow-indigo-600/40 flex items-center justify-center active:scale-90 transition-all border-2 border-[#09090b]"
+              className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-indigo-400 text-white shadow-xl shadow-indigo-600/35 flex items-center justify-center active:scale-90 transition-all border-2 border-slate-50 dark:border-[#09090b]"
               title="Fast Log Transaction"
             >
               <Plus size={24} strokeWidth={2.5} />
@@ -283,8 +270,8 @@ export default function App() {
             }}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
               activeTab === 'bills'
-                ? 'text-indigo-400 font-bold'
-                : 'text-neutral-400 hover:text-neutral-200'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                : 'text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-200'
             }`}
           >
             <div
@@ -305,8 +292,8 @@ export default function App() {
             }}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-all active:scale-95 ${
               activeTab === 'settings'
-                ? 'text-indigo-400 font-bold'
-                : 'text-neutral-400 hover:text-neutral-200'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                : 'text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-200'
             }`}
           >
             <div

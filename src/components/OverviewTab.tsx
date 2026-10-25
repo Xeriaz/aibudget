@@ -6,7 +6,6 @@ import {
   TrendingUp,
   ArrowDownRight,
   ArrowUpRight,
-  Calendar,
   CheckCircle2,
   Clock,
   Zap,
@@ -33,6 +32,7 @@ interface OverviewTabProps {
   categories: Category[];
   recurring: RecurringPayment[];
   settings: PlanSettings;
+  theme?: 'dark' | 'light';
   onRefresh: () => void;
   onOpenFastAdd?: () => void;
   onSelectTransactionToEdit: (tx: Transaction) => void;
@@ -46,6 +46,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   categories,
   recurring,
   settings,
+  theme = 'dark',
   onRefresh,
   onNavigateToTab
 }) => {
@@ -105,20 +106,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Period Switcher */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 shadow-inner">
+        <div className="flex items-center bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-2xl p-1 shadow-xs dark:shadow-inner transition-colors">
           <button
             onClick={handlePrevMonth}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all"
             aria-label="Previous Month"
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="px-3 text-sm font-bold tracking-tight text-white min-w-32 text-center">
+          <span className="px-3 text-sm font-bold tracking-tight text-slate-900 dark:text-white min-w-32 text-center">
             {format(currentDate, 'MMMM yyyy')}
           </span>
           <button
             onClick={handleNextMonth}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all"
             aria-label="Next Month"
           >
             <ChevronRight size={18} />
@@ -128,7 +129,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         {!isViewingToday && (
           <button
             onClick={handleResetToToday}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 active:scale-95 transition-all"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 dark:hover:bg-indigo-500/30 active:scale-95 transition-all"
           >
             Current Month
           </button>
@@ -136,20 +137,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* Net Cash Flow Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-neutral-900/90 via-neutral-900/70 to-neutral-950 border border-white/10 p-6 shadow-2xl backdrop-blur-xl">
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/40 to-slate-100/80 dark:from-neutral-900/90 dark:via-neutral-900/70 dark:to-neutral-950 border border-slate-200/80 dark:border-white/10 p-6 shadow-md dark:shadow-2xl backdrop-blur-xl transition-colors">
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400 tracking-wider uppercase">
+            <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 tracking-wider uppercase">
               Net Cash Flow
             </span>
             <div
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
                 summary.netSavings >= 0
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
               }`}
             >
               <TrendingUp size={12} className={summary.netSavings < 0 ? 'rotate-180' : ''} />
@@ -162,21 +163,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div className="flex items-baseline gap-2">
             <span
               className={`text-4xl sm:text-5xl font-extrabold tracking-tight ${
-                summary.netSavings >= 0 ? 'text-white' : 'text-rose-400'
+                summary.netSavings >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {formatCurrency(summary.netSavings)}
             </span>
-            <span className="text-xs text-neutral-400 font-medium">this period</span>
+            <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">this period</span>
           </div>
 
           {/* Income-to-Spend Visual Meter */}
           <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between text-xs text-neutral-400">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-neutral-400">
               <span>Spend Ratio</span>
-              <span className="font-medium text-neutral-300">{spendRatio.toFixed(0)}% of income</span>
+              <span className="font-medium text-slate-700 dark:text-neutral-300">{spendRatio.toFixed(0)}% of income</span>
             </div>
-            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+            <div className="h-2 w-full bg-slate-200/80 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   spendRatio > 100
@@ -192,20 +193,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           {/* Dual Inflow / Outflow Metric Cards */}
           <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 mb-1">
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
                 <ArrowUpRight size={14} /> Total Income
               </div>
-              <div className="text-lg font-bold text-white tracking-tight">
+              <div className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.incomeTotal)}
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-rose-400 mb-1">
+            <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
+              <div className="flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">
                 <ArrowDownRight size={14} /> Total Spent
               </div>
-              <div className="text-lg font-bold text-white tracking-tight">
+              <div className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.expenseTotal)}
               </div>
             </div>
@@ -214,14 +215,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* Lifestyle & Wealth Plan Card (50/30/20 Smart Blueprint) */}
-      <div className="rounded-3xl bg-neutral-900/80 border border-white/10 p-5 shadow-xl backdrop-blur-md space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 p-5 shadow-sm dark:shadow-xl backdrop-blur-md space-y-4 transition-colors">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <Sparkles size={16} className="text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400" />
               Lifestyle & Wealth Engine ({settings.selectedFramework})
             </h3>
-            <p className="text-xs text-neutral-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
               Income base: {formatCurrency(summary.effectiveIncomeBase)}{' '}
               {settings.useManualSalary ? '(Manual Target)' : '(Actual Inflow)'}
             </p>
@@ -231,7 +232,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               triggerHaptic(5);
               onNavigateToTab('settings');
             }}
-            className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
           >
             Adjust
           </button>
@@ -239,7 +240,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
         {/* Multi-segment allocation preview bar */}
         <div className="space-y-1">
-          <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden flex p-0.5 border border-white/5">
+          <div className="h-3 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden flex p-0.5 border border-slate-200 dark:border-white/5">
             <div
               className="h-full bg-blue-500 rounded-l-full transition-all duration-300"
               style={{ width: `${essentialsCapPct}%` }}
@@ -256,10 +257,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               title={`Investments Cap: ${investmentsCapPct.toFixed(0)}%`}
             />
           </div>
-          <div className="flex justify-between text-[11px] font-semibold text-neutral-400 px-1">
-            <span className="text-blue-400">Essentials ({essentialsCapPct.toFixed(0)}%)</span>
-            <span className="text-purple-400">Self-Care ({selfCareCapPct.toFixed(0)}%)</span>
-            <span className="text-teal-400">Wealth ({investmentsCapPct.toFixed(0)}%)</span>
+          <div className="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-neutral-400 px-1">
+            <span className="text-blue-600 dark:text-blue-400">Essentials ({essentialsCapPct.toFixed(0)}%)</span>
+            <span className="text-purple-600 dark:text-purple-400">Self-Care ({selfCareCapPct.toFixed(0)}%)</span>
+            <span className="text-teal-600 dark:text-teal-400">Wealth ({investmentsCapPct.toFixed(0)}%)</span>
           </div>
         </div>
 
@@ -268,22 +269,22 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           {/* Self-Care Remaining & Daily Safe Pace */}
           <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
                 <Heart size={14} /> Self-Care & Wants
               </span>
-              <span className="text-xs text-neutral-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
                 {summary.selfCare.percentage}%
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-white">
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {formatCurrency(summary.selfCare.remaining)}
               </div>
-              <div className="text-[11px] text-purple-300/80">buffer remaining</div>
+              <div className="text-[11px] text-purple-700/80 dark:text-purple-300/80">buffer remaining</div>
             </div>
             <div className="pt-1 border-t border-purple-500/15 flex items-center justify-between text-xs">
-              <span className="text-neutral-400">Daily Safe Pace:</span>
-              <span className="font-bold text-white">
+              <span className="text-slate-500 dark:text-neutral-400">Daily Safe Pace:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
                 {formatCurrency(summary.selfCare.dailySafePace || 0)}/day
               </span>
             </div>
@@ -292,24 +293,24 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           {/* Investments Target & Funded % */}
           <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
                 <TrendingUp size={14} /> Wealth / DCA
               </span>
-              <span className="text-xs text-neutral-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
                 {summary.investments.percentage}%
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-white">
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {formatCurrency(summary.investments.spent)}
               </div>
-              <div className="text-[11px] text-teal-300/80">
+              <div className="text-[11px] text-teal-700/80 dark:text-teal-300/80">
                 funded of {formatCurrency(summary.investments.budgetCap)}
               </div>
             </div>
             <div className="pt-1 border-t border-teal-500/15 flex items-center justify-between text-xs">
-              <span className="text-neutral-400">Progress:</span>
-              <span className="font-bold text-teal-300">
+              <span className="text-slate-500 dark:text-neutral-400">Progress:</span>
+              <span className="font-bold text-teal-700 dark:text-teal-300">
                 {(summary.investments.fundedProgressPct || 0).toFixed(0)}%
               </span>
             </div>
@@ -318,24 +319,24 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           {/* Essentials Cap & Committed Bills */}
           <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
                 <ShieldCheck size={14} /> Essentials
               </span>
-              <span className="text-xs text-neutral-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
                 {summary.essentials.percentage}%
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-white">
+              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {formatCurrency(summary.essentials.spent)}
               </div>
-              <div className="text-[11px] text-blue-300/80">
+              <div className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
                 spent of {formatCurrency(summary.essentials.budgetCap)}
               </div>
             </div>
             <div className="pt-1 border-t border-blue-500/15 flex items-center justify-between text-xs">
-              <span className="text-neutral-400">Committed Bills:</span>
-              <span className="font-bold text-white">
+              <span className="text-slate-500 dark:text-neutral-400">Committed Bills:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
                 {formatCurrency(summary.essentials.committedBills || 0)}/mo
               </span>
             </div>
@@ -344,13 +345,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* Upcoming Commitments Widget */}
-      <div className="rounded-3xl bg-neutral-900/80 border border-white/10 p-5 shadow-xl space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 p-5 shadow-sm dark:shadow-xl space-y-4 transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock size={16} className="text-amber-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight">Upcoming Commitments</h3>
+            <Clock size={16} className="text-amber-500 dark:text-amber-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Upcoming Commitments</h3>
           </div>
-          <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/5">
+          <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200/80 dark:border-white/5">
             <button
               onClick={() => {
                 triggerHaptic(5);
@@ -358,8 +359,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                 billsTimeframe === '7'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               7 Days
@@ -371,8 +372,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                 billsTimeframe === '30'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               30 Days
@@ -381,7 +382,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
 
         {upcomingBills.length === 0 ? (
-          <div className="py-6 text-center text-xs text-neutral-400 bg-white/5 rounded-2xl border border-white/5">
+          <div className="py-6 text-center text-xs text-slate-500 dark:text-neutral-400 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/70 dark:border-white/5">
             No bills due within {billsTimeframe} days. You're completely clear!
           </div>
         ) : (
@@ -393,22 +394,22 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               const isTomorrow = bill.daysLeft === 1;
 
               let tagText = `In ${bill.daysLeft} days`;
-              let tagStyle = 'bg-white/10 text-neutral-300 border-white/10';
+              let tagStyle = 'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
               if (isOverdue) {
                 tagText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
-                tagStyle = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                tagStyle = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40';
               } else if (isToday) {
                 tagText = 'Due Today';
-                tagStyle = 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse';
+                tagStyle = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 animate-pulse';
               } else if (isTomorrow) {
                 tagText = 'Tomorrow';
-                tagStyle = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                tagStyle = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
               }
 
               return (
                 <div
                   key={bill.id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -421,11 +422,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                         {bill.title}
                         {bill.isAutoPay && (
                           <span title="Auto-Debit Enabled">
-                            <Zap size={12} className="text-indigo-400" />
+                            <Zap size={12} className="text-indigo-600 dark:text-indigo-400" />
                           </span>
                         )}
                       </div>
@@ -433,7 +434,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tagStyle}`}>
                           {tagText}
                         </span>
-                        <span className="text-xs text-neutral-400">
+                        <span className="text-xs text-slate-500 dark:text-neutral-400">
                           {format(new Date(bill.nextDueDate), 'MMM d')}
                         </span>
                       </div>
@@ -441,12 +442,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-extrabold text-white">
+                    <span className="text-sm font-extrabold text-slate-900 dark:text-white">
                       {formatCurrency(bill.amount, bill.currencyCode)}
                     </span>
                     <button
                       onClick={() => handleMarkPaid(bill)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
                     >
                       <CheckCircle2 size={13} /> Paid
                     </button>
@@ -459,19 +460,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* Spending by Category Donut Chart & Ranked List */}
-      <div className="rounded-3xl bg-neutral-900/80 border border-white/10 p-5 shadow-xl space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 p-5 shadow-sm dark:shadow-xl space-y-4 transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Wallet size={16} className="text-indigo-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight">Spending Breakdown</h3>
+            <Wallet size={16} className="text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Spending Breakdown</h3>
           </div>
-          <span className="text-xs text-neutral-400 font-medium">
+          <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
             Total {formatCurrency(summary.expenseTotal)}
           </span>
         </div>
 
         {summary.expenseTotal === 0 ? (
-          <div className="py-8 text-center text-xs text-neutral-400 bg-white/5 rounded-2xl border border-white/5">
+          <div className="py-8 text-center text-xs text-slate-500 dark:text-neutral-400 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/70 dark:border-white/5">
             No expenses logged for {format(currentDate, 'MMMM yyyy')}.
           </div>
         ) : (
@@ -482,11 +483,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 <PieChart>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#18181b',
+                      backgroundColor: theme === 'light' ? '#ffffff' : '#18181b',
                       borderRadius: '12px',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#fff',
-                      fontSize: '12px'
+                      border: theme === 'light' ? '1px solid rgba(15,23,42,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                      color: theme === 'light' ? '#0f172a' : '#fff',
+                      fontSize: '12px',
+                      boxShadow: theme === 'light' ? '0 4px 12px rgba(15,23,42,0.08)' : 'none'
+                    }}
+                    itemStyle={{
+                      color: theme === 'light' ? '#0f172a' : '#fff'
                     }}
                     formatter={(val: any) => [formatCurrency(Number(val)), 'Spent']}
                   />
@@ -505,10 +510,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </ResponsiveContainer>
               {/* Centered Metric in Donut Hole */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
                   Total Spent
                 </span>
-                <span className="text-lg font-extrabold text-white">
+                <span className="text-lg font-extrabold text-slate-900 dark:text-white">
                   {formatCurrency(summary.expenseTotal)}
                 </span>
               </div>
@@ -519,7 +524,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               {summary.categorySpending.map(item => (
                 <div
                   key={item.category.id}
-                  className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors space-y-1.5"
+                  className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-colors space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -532,21 +537,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       >
                         <CategoryIcon iconName={item.category.iconName} size={14} />
                       </div>
-                      <span className="text-xs font-bold text-white">{item.category.name}</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{item.category.name}</span>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-xs font-extrabold text-white block">
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white block">
                         {formatCurrency(item.amount)}
                       </span>
-                      <span className="text-[10px] text-neutral-400">
+                      <span className="text-[10px] text-slate-500 dark:text-neutral-400">
                         {item.percentage.toFixed(1)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Micro-percentage bar */}
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-slate-200/80 dark:bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
