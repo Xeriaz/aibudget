@@ -15,6 +15,7 @@ import { SettingsTab } from './components/SettingsTab';
 import { TransactionModal } from './components/TransactionModal';
 import { RecurringModal } from './components/RecurringModal';
 import { triggerHaptic } from './lib/calculations';
+import { getSavedFont, applyFont, type FontFamilyId } from './lib/fonts';
 
 type ActiveTab = 'overview' | 'ledger' | 'bills' | 'settings';
 
@@ -39,6 +40,9 @@ export default function App() {
     return (localStorage.getItem('aibudget_theme') as 'dark' | 'light') || 'dark';
   });
 
+  // Font state (stored locally per device)
+  const [font, setFont] = useState<FontFamilyId>(() => getSavedFont());
+
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'light') {
@@ -50,6 +54,10 @@ export default function App() {
     }
     localStorage.setItem('aibudget_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    applyFont(font);
+  }, [font]);
 
   // Lock body scroll when a modal is open to prevent background/rubber-band scrolling on iOS
   useEffect(() => {
@@ -210,6 +218,8 @@ export default function App() {
             categories={categories}
             theme={theme}
             onThemeChange={setTheme}
+            font={font}
+            onFontChange={setFont}
             onRefresh={loadData}
           />
         )}
