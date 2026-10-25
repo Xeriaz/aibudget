@@ -103,6 +103,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const selfCareCapPct = (summary.selfCare.budgetCap / totalBudgetCap) * 100;
   const investmentsCapPct = (summary.investments.budgetCap / totalBudgetCap) * 100;
 
+  // Over-limit indicators for Self-Care and Essentials
+  const isSelfCareOver = summary.selfCare.remaining < 0;
+  const selfCareOverAmount = Math.abs(summary.selfCare.remaining);
+
+  const isEssentialsOver = summary.essentials.spent > summary.essentials.budgetCap;
+  const essentialsOverAmount = Math.max(0, summary.essentials.spent - summary.essentials.budgetCap);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Period Switcher */}
@@ -268,24 +275,55 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         {/* 3 Tri-Color Status Blocks */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           {/* Self-Care Remaining & Daily Safe Pace */}
-          <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-2">
+          <div
+            className={`p-3.5 rounded-2xl bg-purple-500/10 border space-y-2 transition-colors ${
+              isSelfCareOver
+                ? 'border-rose-500/40 dark:border-rose-500/50'
+                : 'border-purple-500/20'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
                 <Heart size={14} /> Self-Care & Wants
               </span>
-              <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
-                {summary.selfCare.percentage}%
-              </span>
+              <div className="flex items-center gap-1.5">
+                {isSelfCareOver && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                    Over Limit
+                  </span>
+                )}
+                <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
+                  {summary.selfCare.percentage}%
+                </span>
+              </div>
             </div>
             <div>
-              <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white">
+              <div
+                className={`text-xl font-extrabold font-mono tracking-tight ${
+                  isSelfCareOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                }`}
+              >
                 {formatCurrency(summary.selfCare.remaining)}
               </div>
-              <div className="text-[11px] text-purple-700/80 dark:text-purple-300/80">buffer remaining</div>
+              <div
+                className={`text-[11px] ${
+                  isSelfCareOver
+                    ? 'text-rose-600/90 dark:text-rose-400/90 font-medium'
+                    : 'text-purple-700/80 dark:text-purple-300/80'
+                }`}
+              >
+                {isSelfCareOver
+                  ? `${formatCurrency(selfCareOverAmount)} over monthly cap`
+                  : 'buffer remaining'}
+              </div>
             </div>
             <div className="pt-1 border-t border-purple-500/15 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-neutral-400">Daily Safe Pace:</span>
-              <span className="font-bold font-mono text-slate-900 dark:text-white">
+              <span
+                className={`font-bold font-mono ${
+                  isSelfCareOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                }`}
+              >
                 {formatCurrency(summary.selfCare.dailySafePace || 0)}/day
               </span>
             </div>
@@ -318,21 +356,46 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
 
           {/* Essentials Cap & Committed Bills */}
-          <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+          <div
+            className={`p-3.5 rounded-2xl bg-blue-500/10 border space-y-2 transition-colors ${
+              isEssentialsOver
+                ? 'border-rose-500/40 dark:border-rose-500/50'
+                : 'border-blue-500/20'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
                 <ShieldCheck size={14} /> Essentials
               </span>
-              <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
-                {summary.essentials.percentage}%
-              </span>
+              <div className="flex items-center gap-1.5">
+                {isEssentialsOver && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                    Over Cap
+                  </span>
+                )}
+                <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
+                  {summary.essentials.percentage}%
+                </span>
+              </div>
             </div>
             <div>
-              <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white">
+              <div
+                className={`text-xl font-extrabold font-mono tracking-tight ${
+                  isEssentialsOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                }`}
+              >
                 {formatCurrency(summary.essentials.spent)}
               </div>
-              <div className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
-                spent of {formatCurrency(summary.essentials.budgetCap)}
+              <div
+                className={`text-[11px] ${
+                  isEssentialsOver
+                    ? 'text-rose-600/90 dark:text-rose-400/90 font-medium'
+                    : 'text-blue-700/80 dark:text-blue-300/80'
+                }`}
+              >
+                {isEssentialsOver
+                  ? `spent of ${formatCurrency(summary.essentials.budgetCap)} (+${formatCurrency(essentialsOverAmount)} over)`
+                  : `spent of ${formatCurrency(summary.essentials.budgetCap)}`}
               </div>
             </div>
             <div className="pt-1 border-t border-blue-500/15 flex items-center justify-between text-xs">
