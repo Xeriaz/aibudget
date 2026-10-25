@@ -1,14 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   X,
   Trash2,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import type { Transaction, Category } from '../types';
-import { formatCurrency, triggerHaptic } from '../lib/calculations';
+import { calculateYearlyCashFlow, formatCurrency, triggerHaptic } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 import { db } from '../db/db';
 
@@ -31,6 +34,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all'); // format: 'YYYY-MM' or 'all'
+  const [chartYear, setChartYear] = useState<number>(() => new Date().getFullYear());
 
   // Map of categories
   const categoryMap = useMemo(() => {
@@ -50,7 +54,21 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     return Array.from(set).sort().reverse();
   }, [transactions]);
 
-  const hasActiveFilters = searchQuery !== '' || selectedType !== 'all' || selectedCategoryId !== 'all' || selectedMonth !== 'all';
+  // Keep chartYear synced if the user picks a specific month from another year
+  useEffect(() => {
+    if (selectedMonth !== 'all' && selectedMonth.length >= 4) {
+      const yr = Number(selectedMonth.substring(0, 4));
+      if (Number.isInteger(yr) && yr > 1900) {
+        setChartYear(yr);
+      }
+    }
+  }, [selectedMonth]);
+
+  const hasActiveFilters =
+    searchQuery !== '' ||
+    selectedType !== 'all' ||
+    selectedCategoryId !== 'all' ||
+    selectedMonth !== 'all';
 
   const resetFilters = () => {
     triggerHaptic(10);
@@ -60,17 +78,14 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     setSelectedMonth('all');
   };
 
-  // Filter transactions
-  const filteredTransactions = useMemo(() => {
+  // Base filtered transactions (type + category + search, excluding month filter so the 12-month chart shows all months)
+  const baseFilteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       // Type filter
       if (selectedType !== 'all' && t.type !== selectedType) return false;
 
       // Category filter
       if (selectedCategoryId !== 'all' && t.categoryId !== selectedCategoryId) return false;
-
-      // Month filter
-      if (selectedMonth !== 'all' && !t.transactionDate.startsWith(selectedMonth)) return false;
 
       // Search query
       if (searchQuery.trim() !== '') {
@@ -84,8 +99,27 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
       }
 
       return true;
-    }).sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (b.createdAt || '').localeCompare(a.createdAt || ''));
-  }, [transactions, selectedType, selectedCategoryId, selectedMonth, searchQuery, categoryMap]);
+    });
+  }, [transactions, selectedType, selectedCategoryId, searchQuery, categoryMap]);
+
+  // Yearly 12-month comparison data
+  const yearlySummary = useMemo(() => {
+    return calculateYearlyCashFlow(baseFilteredTransactions, chartYear);
+  }, [baseFilteredTransactions, chartYear]);
+
+  // Filter transactions (including month filter for the list & top strip)
+  const filteredTransactions = useMemo(() => {
+    return baseFilteredTransactions
+      .filter(t => {
+        if (selectedMonth !== 'all' && !t.transactionDate.startsWith(selectedMonth)) return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          b.transactionDate.localeCompare(a.transactionDate) ||
+          (b.createdAt || '').localeCompare(a.createdAt || '')
+      );
+  }, [baseFilteredTransactions, selectedMonth]);
 
   // Filtered Totals
   const { totalInflow, totalOutflow } = useMemo(() => {
@@ -133,6 +167,27 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     return txs.reduce((acc, t) => (t.type === 'income' ? acc + t.amount : acc - t.amount), 0);
   };
 
+  const handleToggleMonthBar = (monthKey: string) => {
+    triggerHaptic(10);
+    setSelectedMonth(prev => (prev === monthKey ? 'all' : monthKey));
+  };
+
+  const handlePrevYear = () => {
+    triggerHaptic(10);
+    setChartYear(y => y - 1);
+    if (selectedMonth !== 'all') {
+      setSelectedMonth('all');
+    }
+  };
+
+  const handleNextYear = () => {
+    triggerHaptic(10);
+    setChartYear(y => y + 1);
+    if (selectedMonth !== 'all') {
+      setSelectedMonth('all');
+    }
+  };
+
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
       {/* Top Summary Strip */}
@@ -160,6 +215,180 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
           <span className="text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400">
             {formatCurrency(totalOutflow)}
           </span>
+        </div>
+      </div>
+
+      {/* Annual Month-by-Month Spend vs Income Diagram */}
+      <div
+        className="p-4 bg-white dark:bg-neutral-900/90 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-sm dark:shadow-lg backdrop-blur-md space-y-3 transition-colors"
+        aria-label="Annual Cash Flow Chart"
+      >
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <BarChart3 size={15} />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                Monthly Cash Flow
+              </h3>
+              <p className="text-[10px] text-slate-500 dark:text-neutral-400">
+                Tap a month to filter transactions
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Legend */}
+            <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-medium text-slate-500 dark:text-neutral-400">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2 h-2 rounded-xs bg-emerald-500 inline-block" />
+                Income
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2 h-2 rounded-xs bg-rose-500 inline-block" />
+                Spend
+              </span>
+            </div>
+
+            {/* Year Selector */}
+            <div className="flex items-center bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-0.5">
+              <button
+                type="button"
+                onClick={handlePrevYear}
+                aria-label="Previous Year"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 active:scale-95 transition-all"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span
+                data-testid="chart-year-label"
+                className="px-2 text-xs font-extrabold font-mono text-slate-900 dark:text-white"
+              >
+                {chartYear}
+              </span>
+              <button
+                type="button"
+                onClick={handleNextYear}
+                aria-label="Next Year"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 active:scale-95 transition-all"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 12-Month Side-by-Side Bars */}
+        <div className="grid grid-cols-12 gap-1 sm:gap-1.5 pt-2 pb-1 items-end border-b border-slate-200/70 dark:border-white/10">
+          {yearlySummary.months.map(m => {
+            const isSelected = selectedMonth === m.monthKey;
+            const isDimmed = selectedMonth !== 'all' && !isSelected;
+            const maxVal = yearlySummary.maxMonthlyValue;
+
+            const incomePct =
+              maxVal > 0 && m.income > 0 ? Math.max(6, Math.round((m.income / maxVal) * 100)) : 0;
+            const expensePct =
+              maxVal > 0 && m.expense > 0 ? Math.max(6, Math.round((m.expense / maxVal) * 100)) : 0;
+
+            return (
+              <button
+                key={m.monthKey}
+                type="button"
+                onClick={() => handleToggleMonthBar(m.monthKey)}
+                aria-label={`${m.monthLabel} ${chartYear}: Income ${formatCurrency(m.income)}, Spend ${formatCurrency(m.expense)}`}
+                aria-pressed={isSelected}
+                title={`${m.monthLabel} ${chartYear}\nIncome: ${formatCurrency(m.income)}\nSpend: ${formatCurrency(m.expense)}\nNet: ${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}`}
+                className={`group flex flex-col items-center justify-end rounded-xl py-1.5 px-0.5 transition-all focus:outline-none ${
+                  isSelected
+                    ? 'bg-indigo-500/15 dark:bg-indigo-500/20 ring-1 ring-indigo-500/50'
+                    : 'hover:bg-slate-100 dark:hover:bg-white/5'
+                } ${isDimmed ? 'opacity-45 hover:opacity-85' : 'opacity-100'}`}
+              >
+                <div className="h-24 w-full flex items-end justify-center gap-0.5 sm:gap-1 px-0.5">
+                  {/* Income Bar */}
+                  <div className="h-full flex-1 max-w-[9px] flex items-end">
+                    <div
+                      data-testid={`bar-income-${m.monthKey}`}
+                      className={`w-full rounded-t-xs transition-all duration-300 ${
+                        m.income > 0
+                          ? 'bg-emerald-500 dark:bg-emerald-400'
+                          : 'bg-slate-200 dark:bg-white/10 h-[2px]'
+                      }`}
+                      style={m.income > 0 ? { height: `${incomePct}%` } : undefined}
+                    />
+                  </div>
+
+                  {/* Expense Bar */}
+                  <div className="h-full flex-1 max-w-[9px] flex items-end">
+                    <div
+                      data-testid={`bar-expense-${m.monthKey}`}
+                      className={`w-full rounded-t-xs transition-all duration-300 ${
+                        m.expense > 0
+                          ? 'bg-rose-500 dark:bg-rose-400'
+                          : 'bg-slate-200 dark:bg-white/10 h-[2px]'
+                      }`}
+                      style={m.expense > 0 ? { height: `${expensePct}%` } : undefined}
+                    />
+                  </div>
+                </div>
+
+                <span
+                  className={`mt-1.5 text-[10px] font-mono leading-none tracking-tight ${
+                    isSelected
+                      ? 'font-extrabold text-indigo-600 dark:text-indigo-300'
+                      : 'font-medium text-slate-500 dark:text-neutral-400 group-hover:text-slate-900 dark:group-hover:text-white'
+                  }`}
+                >
+                  {m.monthLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Month or Annual Summary Footer */}
+        <div className="flex items-center justify-between text-[11px] pt-0.5 text-slate-500 dark:text-neutral-400 flex-wrap gap-2">
+          <div className="flex items-center gap-3 font-mono">
+            <span>
+              {chartYear} In:{' '}
+              <strong className="text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(yearlySummary.totalIncome)}
+              </strong>
+            </span>
+            <span>
+              Out:{' '}
+              <strong className="text-rose-600 dark:text-rose-400">
+                {formatCurrency(yearlySummary.totalExpense)}
+              </strong>
+            </span>
+            <span>
+              Net:{' '}
+              <strong
+                className={
+                  yearlySummary.totalNet >= 0
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }
+              >
+                {yearlySummary.totalNet >= 0 ? '+' : ''}
+                {formatCurrency(yearlySummary.totalNet)}
+              </strong>
+            </span>
+          </div>
+
+          {selectedMonth !== 'all' && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(5);
+                setSelectedMonth('all');
+              }}
+              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Showing {selectedMonth} • Clear month
+            </button>
+          )}
         </div>
       </div>
 
@@ -213,21 +442,25 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
         ))}
 
         {/* Month Dropdown / Pills */}
-        {availableMonths.length > 0 && (
+        {(availableMonths.length > 0 || selectedMonth !== 'all') && (
           <select
             value={selectedMonth}
             onChange={e => {
               triggerHaptic(5);
               setSelectedMonth(e.target.value);
             }}
+            aria-label="Filter by month"
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
           >
             <option value="all">All Months</option>
-            {availableMonths.map(m => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
+            {Array.from(new Set([...availableMonths, ...(selectedMonth !== 'all' ? [selectedMonth] : [])]))
+              .sort()
+              .reverse()
+              .map(m => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
           </select>
         )}
 
@@ -238,6 +471,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             triggerHaptic(5);
             setSelectedCategoryId(e.target.value);
           }}
+          aria-label="Filter by category"
           className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
         >
           <option value="all">All Categories</option>

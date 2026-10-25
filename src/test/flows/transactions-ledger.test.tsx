@@ -186,8 +186,8 @@ describe('Flow 3: Transaction Lifecycle & Ledger Filtering', () => {
     expect(await screen.findByText('Specialty Coffee')).toBeInTheDocument();
     expect(screen.getByText('City Supermarket')).toBeInTheDocument();
     expect(screen.getByText('Freelance Payout')).toBeInTheDocument();
-    expect(screen.getByText('€500.00')).toBeInTheDocument(); // Inflow
-    expect(screen.getByText('€70.00')).toBeInTheDocument(); // Outflow (5.5 + 64.5)
+    expect(screen.getAllByText('€500.00').length).toBeGreaterThan(0); // Inflow
+    expect(screen.getAllByText('€70.00').length).toBeGreaterThan(0); // Outflow (5.5 + 64.5)
 
     // Filter by type: income
     await user.click(screen.getByRole('button', { name: /^income$/i }));
@@ -235,5 +235,80 @@ describe('Flow 3: Transaction Lifecycle & Ledger Filtering', () => {
       ).not.toBeInTheDocument();
     });
     expect(await db.transactions.get('tx_1')).toBeUndefined();
+  });
+
+  it('renders the interactive 12-month Cash Flow chart in LedgerTab, supports year switching, and filters transactions when clicking a month bar', async () => {
+    const currentYear = new Date().getFullYear();
+    await initializeDatabase();
+    await db.transactions.bulkAdd([
+      makeTransaction({
+        id: 'tx_jan_inc',
+        title: 'January Salary',
+        amount: 3000,
+        type: 'income',
+        categoryId: 'cat-salary',
+        transactionDate: `${currentYear}-01-10`
+      }),
+      makeTransaction({
+        id: 'tx_jan_exp',
+        title: 'January Rent',
+        amount: 1100,
+        type: 'expense',
+        categoryId: 'cat-housing',
+        transactionDate: `${currentYear}-01-12`
+      }),
+      makeTransaction({
+        id: 'tx_mar_exp',
+        title: 'March Flight',
+        amount: 450,
+        type: 'expense',
+        categoryId: 'cat-dining',
+        transactionDate: `${currentYear}-03-05`
+      }),
+      makeTransaction({
+        id: 'tx_prev_year',
+        title: 'Last Year Bonus',
+        amount: 2000,
+        type: 'income',
+        categoryId: 'cat-salary',
+        transactionDate: `${currentYear - 1}-06-15`
+      })
+    ]);
+
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /ledger/i }));
+
+    const chartRegion = await screen.findByLabelText('Annual Cash Flow Chart');
+    expect(within(chartRegion).getByTestId('chart-year-label')).toHaveTextContent(String(currentYear));
+
+    // Both January and March transactions are initially visible
+    expect(screen.getByText('January Salary')).toBeInTheDocument();
+    expect(screen.getByText('March Flight')).toBeInTheDocument();
+
+    // Click January bar to filter to January only
+    const janBarBtn = within(chartRegion).getByRole('button', { name: new RegExp(`^Jan ${currentYear}:`, 'i') });
+    await user.click(janBarBtn);
+    expect(janBarBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('January Salary')).toBeInTheDocument();
+    expect(screen.getByText('January Rent')).toBeInTheDocument();
+    expect(screen.queryByText('March Flight')).not.toBeInTheDocument();
+
+    // Click January bar again to clear the month filter
+    await user.click(janBarBtn);
+    expect(janBarBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('March Flight')).toBeInTheDocument();
+
+    // Switch to previous year via Previous Year button
+    await user.click(within(chartRegion).getByRole('button', { name: /previous year/i }));
+    expect(within(chartRegion).getByTestId('chart-year-label')).toHaveTextContent(String(currentYear - 1));
+
+    // Click June of previous year to filter to Last Year Bonus
+    const junPrevBtn = within(chartRegion).getByRole('button', { name: new RegExp(`^Jun ${currentYear - 1}:`, 'i') });
+    await user.click(junPrevBtn);
+    expect(screen.getByText('Last Year Bonus')).toBeInTheDocument();
+    expect(screen.queryByText('January Salary')).not.toBeInTheDocument();
   });
 });

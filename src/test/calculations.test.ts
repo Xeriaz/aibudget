@@ -7,7 +7,8 @@ import {
   markBillAsPaid,
   resolveCategoryBucket,
   getFrameworkPercentages,
-  calculateMonthSummary
+  calculateMonthSummary,
+  calculateYearlyCashFlow
 } from '../lib/calculations';
 import { db, DEFAULT_CATEGORIES, DEFAULT_SETTINGS } from '../db/db';
 import {
@@ -306,6 +307,48 @@ describe('Flow 2: Financial Calculations & Budget Engine', () => {
         new Date('2026-10-15T12:00:00.000Z')
       );
       expect(manualOverrideSummary.effectiveIncomeBase).toBe(3200);
+    });
+  });
+
+  describe('calculateYearlyCashFlow', () => {
+    it('aggregates 12 months of income, expenses, and net for a target year while ignoring other years', () => {
+      const txs = [
+        makeTransaction({ type: 'income', amount: 3000, transactionDate: '2026-01-05' }),
+        makeTransaction({ type: 'expense', amount: 1200, transactionDate: '2026-01-12' }),
+        makeTransaction({ type: 'expense', amount: 300, transactionDate: '2026-01-20' }),
+        makeTransaction({ type: 'income', amount: 3200, transactionDate: '2026-10-01' }),
+        makeTransaction({ type: 'expense', amount: 1800, transactionDate: '2026-10-14' }),
+        // Different year
+        makeTransaction({ type: 'income', amount: 5000, transactionDate: '2025-10-01' })
+      ];
+
+      const yearly = calculateYearlyCashFlow(txs, 2026);
+      expect(yearly.year).toBe(2026);
+      expect(yearly.months).toHaveLength(12);
+
+      // Jan (index 0)
+      expect(yearly.months[0].monthKey).toBe('2026-01');
+      expect(yearly.months[0].income).toBe(3000);
+      expect(yearly.months[0].expense).toBe(1500);
+      expect(yearly.months[0].net).toBe(1500);
+      expect(yearly.months[0].transactionCount).toBe(3);
+
+      // Feb (index 1) -> empty
+      expect(yearly.months[1].income).toBe(0);
+      expect(yearly.months[1].expense).toBe(0);
+      expect(yearly.months[1].transactionCount).toBe(0);
+
+      // Oct (index 9)
+      expect(yearly.months[9].monthKey).toBe('2026-10');
+      expect(yearly.months[9].income).toBe(3200);
+      expect(yearly.months[9].expense).toBe(1800);
+      expect(yearly.months[9].net).toBe(1400);
+
+      // Yearly totals
+      expect(yearly.totalIncome).toBe(6200);
+      expect(yearly.totalExpense).toBe(3300);
+      expect(yearly.totalNet).toBe(2900);
+      expect(yearly.maxMonthlyValue).toBe(3200);
     });
   });
 });

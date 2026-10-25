@@ -187,6 +187,79 @@ export interface MonthSummary {
   activeRecurringTotalMonthly: number;
 }
 
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+export interface YearlyMonthBreakdown {
+  monthIndex: number; // 0 = Jan, 11 = Dec
+  monthKey: string; // 'YYYY-MM'
+  monthLabel: string; // 'Jan' .. 'Dec'
+  income: number;
+  expense: number;
+  net: number;
+  transactionCount: number;
+}
+
+export interface YearlyCashFlowSummary {
+  year: number;
+  months: YearlyMonthBreakdown[];
+  totalIncome: number;
+  totalExpense: number;
+  totalNet: number;
+  maxMonthlyValue: number;
+}
+
+export function calculateYearlyCashFlow(
+  transactions: Transaction[],
+  year: number
+): YearlyCashFlowSummary {
+  const yearPrefix = `${year}-`;
+  const months: YearlyMonthBreakdown[] = MONTH_LABELS.map((monthLabel, idx) => ({
+    monthIndex: idx,
+    monthKey: `${year}-${String(idx + 1).padStart(2, '0')}`,
+    monthLabel,
+    income: 0,
+    expense: 0,
+    net: 0,
+    transactionCount: 0
+  }));
+
+  for (const tx of transactions) {
+    if (!tx.transactionDate || !tx.transactionDate.startsWith(yearPrefix)) continue;
+    const monthPart = Number(tx.transactionDate.substring(5, 7));
+    if (!Number.isInteger(monthPart) || monthPart < 1 || monthPart > 12) continue;
+
+    const bucket = months[monthPart - 1];
+    const amt = Number(tx.amount) || 0;
+    if (tx.type === 'income') {
+      bucket.income += amt;
+    } else {
+      bucket.expense += amt;
+    }
+    bucket.transactionCount += 1;
+  }
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let maxMonthlyValue = 0;
+
+  for (const m of months) {
+    m.net = m.income - m.expense;
+    totalIncome += m.income;
+    totalExpense += m.expense;
+    if (m.income > maxMonthlyValue) maxMonthlyValue = m.income;
+    if (m.expense > maxMonthlyValue) maxMonthlyValue = m.expense;
+  }
+
+  return {
+    year,
+    months,
+    totalIncome,
+    totalExpense,
+    totalNet: totalIncome - totalExpense,
+    maxMonthlyValue
+  };
+}
+
 export function calculateMonthSummary(
   transactions: Transaction[],
   categories: Category[],
