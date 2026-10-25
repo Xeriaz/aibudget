@@ -10,10 +10,13 @@ describe('OverviewTab Over-Limit Styling (Self-Care & Essentials)', () => {
   ];
 
   const defaultSettings: PlanSettings = {
+    id: 'current',
     selectedFramework: '50/30/20',
+    customEssentialsPct: 50,
+    customSelfCarePct: 30,
+    customInvestmentsPct: 20,
     useManualSalary: true,
-    manualSalary: 1000, // Essentials Cap = 500, Self-Care Cap = 300, Wealth Cap = 200
-    theme: 'dark'
+    manualSalary: 1000 // Essentials Cap = 500, Self-Care Cap = 300, Wealth Cap = 200
   };
 
   const dummyRecurring: RecurringPayment[] = [];

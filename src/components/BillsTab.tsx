@@ -149,7 +149,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           triggerHaptic(10);
           onSelectToEdit(bill);
         }}
-        className={`group flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-neutral-900/80 border shadow-2xs dark:shadow-none transition-all cursor-pointer ${
+        className={`group flex flex-col sm:flex-row sm:items-center sm:justify-between p-3.5 rounded-2xl bg-white dark:bg-neutral-900/80 border shadow-2xs dark:shadow-none transition-all cursor-pointer gap-2.5 sm:gap-3 ${
           !bill.isActive
             ? 'border-slate-200/60 dark:border-white/5 opacity-50 bg-slate-100 dark:bg-neutral-950'
             : isReminderDue
@@ -157,69 +157,72 @@ export const BillsTab: React.FC<BillsTabProps> = ({
             : 'border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
         }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{
-              backgroundColor: `${cat?.colorHex || '#8b5cf6'}25`,
-              color: cat?.colorHex || '#8b5cf6'
-            }}
-          >
-            <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
-          </div>
+        {/* Top row on mobile / Left group on sm+ */}
+        <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: `${cat?.colorHex || '#8b5cf6'}25`,
+                color: cat?.colorHex || '#8b5cf6'
+              }}
+            >
+              <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
+            </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                {bill.title}
-              </span>
-              {bill.isAutoPay && (
-                <span title="Auto-debit">
-                  <Zap size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                  {bill.title}
                 </span>
-              )}
-              {bill.reminderEnabled && (
-                <span
-                  title={
-                    isReminderDue
-                      ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
-                      : `Reminder ${bill.reminderDaysBefore}d before`
-                  }
-                  className={`inline-flex items-center gap-1 ${
-                    isReminderDue
-                      ? 'px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300'
-                      : ''
-                  }`}
-                >
-                  <Bell
-                    size={12}
-                    className={`text-amber-500 dark:text-amber-400 shrink-0 ${
-                      isReminderDue ? 'animate-bounce' : ''
+                {bill.isAutoPay && (
+                  <span title="Auto-debit">
+                    <Zap size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  </span>
+                )}
+                {bill.reminderEnabled && (
+                  <span
+                    title={
+                      isReminderDue
+                        ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
+                        : `Reminder ${bill.reminderDaysBefore}d before`
+                    }
+                    className={`inline-flex items-center gap-1 ${
+                      isReminderDue
+                        ? 'px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300'
+                        : ''
                     }`}
-                  />
-                  {isReminderDue && <span>Reminder</span>}
-                </span>
-              )}
-              {!bill.isActive && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-neutral-400">
-                  Paused
-                </span>
-              )}
-            </div>
+                  >
+                    <Bell
+                      size={12}
+                      className={`text-amber-500 dark:text-amber-400 shrink-0 ${
+                        isReminderDue ? 'animate-bounce' : ''
+                      }`}
+                    />
+                    {isReminderDue && <span>Reminder</span>}
+                  </span>
+                )}
+                {!bill.isActive && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-neutral-400">
+                    Paused
+                  </span>
+                )}
+              </div>
 
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
-                {badgeText}
-              </span>
-              <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize">
-                {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
-              </span>
+              {/* Desktop: badge and cycle placed inline under title */}
+              <div className="hidden sm:flex items-center gap-2 mt-0.5">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeClass}`}>
+                  {badgeText}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize">
+                  {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="text-right">
+          {/* Mobile: Amount and monthly equivalent on the right of the top row */}
+          <div className="text-right sm:hidden shrink-0">
             <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
               {formatCurrency(bill.amount, bill.currencyCode)}
             </div>
@@ -229,25 +232,52 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               </div>
             )}
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={e => handleToggleActive(e, bill)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-300 active:scale-95 transition-all"
-            title={bill.isActive ? 'Pause Bill' : 'Resume Bill'}
-            aria-label={bill.isActive ? `Pause ${bill.title}` : `Resume ${bill.title}`}
-          >
-            {bill.isActive ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
-          </button>
+        {/* Bottom row on mobile (Due status left, Actions right) / Controls on sm+ */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5 sm:border-0 sm:pt-0 sm:gap-3 shrink-0">
+          {/* Mobile: Due status & billing cycle */}
+          <div className="flex sm:hidden items-center gap-2 min-w-0">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeClass}`}>
+              {badgeText}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize truncate">
+              {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+            </span>
+          </div>
 
-          <button
-            type="button"
-            onClick={e => handleMarkPaid(e, bill)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
-            title="Mark Paid & Advance Due Date"
-          >
-            <CheckCircle2 size={13} /> Paid
-          </button>
+          {/* Action buttons + Desktop Amount */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden sm:block text-right">
+              <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
+                {formatCurrency(bill.amount, bill.currencyCode)}
+              </div>
+              {bill.billingCycle !== 'monthly' && (
+                <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
+                  ~{formatCurrency(monthlyCost)}/mo
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={e => handleToggleActive(e, bill)}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-300 active:scale-95 transition-all"
+              title={bill.isActive ? 'Pause Bill' : 'Resume Bill'}
+              aria-label={bill.isActive ? `Pause ${bill.title}` : `Resume ${bill.title}`}
+            >
+              {bill.isActive ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={e => handleMarkPaid(e, bill)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+              title="Mark Paid & Advance Due Date"
+            >
+              <CheckCircle2 size={13} /> Paid
+            </button>
+          </div>
         </div>
       </div>
     );
