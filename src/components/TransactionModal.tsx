@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Calendar, FileText, Check, Trash2, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Transaction, Category } from '../types';
@@ -13,6 +13,19 @@ interface TransactionModalProps {
   categories: Category[];
   onSaved: () => void;
   onDeleted?: (id: string) => void;
+}
+
+function getFilteredCategoriesForType(categories: Category[], txType: 'expense' | 'income'): Category[] {
+  return categories.filter(c => {
+    if (txType === 'income') {
+      return (
+        c.name.toLowerCase().includes('salary') ||
+        c.name.toLowerCase().includes('income') ||
+        !c.customBucket
+      );
+    }
+    return !c.name.toLowerCase().includes('salary');
+  });
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
@@ -37,7 +50,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [newCatColor, setNewCatColor] = useState<string>('#6366F1');
   const [newCatBucket, setNewCatBucket] = useState<'essentials' | 'selfCareAndWants' | 'investments'>('selfCareAndWants');
 
+  const filteredCategories = useMemo(
+    () => getFilteredCategoriesForType(categories, type),
+    [categories, type]
+  );
+
+  // Initialize form state when modal opens or transactionToEdit changes
   useEffect(() => {
+    if (!isOpen) return;
     if (transactionToEdit) {
       setType(transactionToEdit.type);
       setAmountStr(transactionToEdit.amount.toString());
@@ -51,18 +71,55 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setTitle('');
       setNote('');
       setDateStr(format(new Date(), 'yyyy-MM-dd'));
-      // Pick first default expense or income category
-      const defaultCat = categories.find(c => (type === 'income' ? c.name.toLowerCase().includes('salary') || c.name.toLowerCase().includes('income') : true));
-      setCategoryId(defaultCat ? defaultCat.id : (categories[0]?.id || ''));
+      const expenseCats = getFilteredCategoriesForType(categories, 'expense');
+      setCategoryId(expenseCats[0]?.id || categories[0]?.id || '');
     }
-  }, [transactionToEdit, isOpen, categories]);
+    setShowNewCatModal(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactionToEdit, isOpen]);
+
+  // Ensure selected categoryId is always valid for the current filteredCategories when type or categories change
+  useEffect(() => {
+    if (!isOpen) return;
+    if (filteredCategories.length === 0) return;
+    const isValid = filteredCategories.some(c => c.id === categoryId);
+    if (!isValid) {
+      setCategoryId(filteredCategories[0].id);
+    }
+  }, [type, filteredCategories, categoryId, isOpen]);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showNewCatModal) {
+          setShowNewCatModal(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, showNewCatModal, onClose]);
 
   if (!isOpen) return null;
+
+  const handleTypeChange = (nextType: 'expense' | 'income') => {
+    triggerHaptic(10);
+    setType(nextType);
+    const nextFiltered = getFilteredCategoriesForType(categories, nextType);
+    if (nextFiltered.length > 0 && !nextFiltered.some(c => c.id === categoryId)) {
+      setCategoryId(nextFiltered[0].id);
+    }
+  };
 
   const handleShortcutAdd = (inc: number) => {
     triggerHaptic(10);
     const curr = parseFloat(amountStr) || 0;
-    const nextVal = (curr + inc).toFixed(curr + inc % 1 !== 0 ? 2 : 0);
+    const sum = Math.round((curr + inc) * 100) / 100;
+    const nextVal = sum.toFixed((curr + inc) % 1 !== 0 ? 2 : 0);
     setAmountStr(nextVal);
   };
 
@@ -140,27 +197,56 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     onSaved();
   };
 
-  const filteredCategories = categories.filter(c => {
-    if (type === 'income') {
-      return c.name.toLowerCase().includes('salary') || c.name.toLowerCase().includes('income') || !c.customBucket;
+  const handleDeleteCustomCategory = async (e: React.MouseEvent, cat: Category) => {
+    e.stopPropagation();
+    if (cat.isDefault) return;
+    if (confirm(`Delete custom category "${cat.name}"?`)) {
+      triggerHaptic(25);
+      await db.transaction(
+        'rw',
+        [db.categories, db.transactions, db.recurringPayments],
+        async () => {
+          await db.categories.delete(cat.id);
+          await db.transactions
+            .where('categoryId')
+            .equals(cat.id)
+            .modify({ categoryId: undefined });
+          await db.recurringPayments
+            .where('categoryId')
+            .equals(cat.id)
+            .modify({ categoryId: undefined });
+        }
+      );
+      if (categoryId === cat.id) {
+        const remaining = filteredCategories.filter(c => c.id !== cat.id);
+        setCategoryId(remaining[0]?.id || '');
+      }
+      onSaved();
     }
-    return !c.name.toLowerCase().includes('salary');
-  });
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md transition-opacity overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md transition-opacity overflow-hidden"
+      onClick={onClose}
+    >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tx-modal-title"
         className="w-full max-w-lg max-w-[100vw] bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200 relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold tracking-tight">
+            <h2 id="tx-modal-title" className="text-lg font-bold tracking-tight">
               {transactionToEdit ? 'Edit Transaction' : 'Log Transaction'}
             </h2>
           </div>
           <button
+            type="button"
+            aria-label="Close modal"
             onClick={() => {
               triggerHaptic(5);
               onClose();
@@ -177,10 +263,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-black/40 rounded-2xl border border-slate-200/80 dark:border-white/5">
             <button
               type="button"
-              onClick={() => {
-                triggerHaptic(10);
-                setType('expense');
-              }}
+              onClick={() => handleTypeChange('expense')}
               className={`py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 ${
                 type === 'expense'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25'
@@ -191,10 +274,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
-                triggerHaptic(10);
-                setType('income');
-              }}
+              onClick={() => handleTypeChange('income')}
               className={`py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 ${
                 type === 'income'
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
@@ -217,7 +297,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={amountStr}
                 onChange={e => setAmountStr(e.target.value)}
                 placeholder="0.00"
-                className="text-5xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-56 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
+                className="text-5xl font-extrabold font-mono tracking-tight bg-transparent text-center focus:outline-none w-56 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />
             </div>
             {/* Quick Amount Increment Chips */}
@@ -286,27 +366,41 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               {filteredCategories.map(cat => {
                 const isSelected = categoryId === cat.id;
                 return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic(10);
-                      setCategoryId(cat.id);
-                    }}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all border ${
-                      isSelected
-                        ? 'border-indigo-500 bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-white shadow-sm'
-                        : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-neutral-900/70 text-slate-700 dark:text-neutral-300 hover:border-slate-300 dark:hover:border-white/20'
-                    }`}
-                  >
-                    <div
-                      className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${cat.colorHex}25`, color: cat.colorHex }}
+                  <div key={cat.id} className="relative flex items-center shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(10);
+                        setCategoryId(cat.id);
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shrink-0 transition-all border ${
+                        !cat.isDefault ? 'pr-7' : ''
+                      } ${
+                        isSelected
+                          ? 'border-indigo-500 bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-white shadow-sm'
+                          : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-neutral-900/70 text-slate-700 dark:text-neutral-300 hover:border-slate-300 dark:hover:border-white/20'
+                      }`}
                     >
-                      <CategoryIcon iconName={cat.iconName} size={14} />
-                    </div>
-                    <span>{cat.name}</span>
-                  </button>
+                      <div
+                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${cat.colorHex}25`, color: cat.colorHex }}
+                      >
+                        <CategoryIcon iconName={cat.iconName} size={14} />
+                      </div>
+                      <span>{cat.name}</span>
+                    </button>
+                    {!cat.isDefault && (
+                      <button
+                        type="button"
+                        onClick={e => handleDeleteCustomCategory(e, cat)}
+                        title={`Delete category ${cat.name}`}
+                        aria-label={`Delete category ${cat.name}`}
+                        className="absolute right-1.5 p-1 rounded-md text-slate-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>

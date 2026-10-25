@@ -9,12 +9,13 @@ import {
   CheckCircle2,
   Clock,
   Zap,
+  Bell,
   ShieldCheck,
   Heart,
   Wallet
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { format, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { format, addMonths, subMonths, isSameMonth, parseISO } from 'date-fns';
 import type { Transaction, Category, RecurringPayment, PlanSettings } from '../types';
 import {
   calculateMonthSummary,
@@ -162,7 +163,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           <div className="flex items-baseline gap-2">
             <span
-              className={`text-4xl sm:text-5xl font-extrabold tracking-tight ${
+              className={`text-4xl sm:text-5xl font-extrabold font-mono tracking-tight ${
                 summary.netSavings >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
@@ -197,7 +198,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
                 <ArrowUpRight size={14} /> Total Income
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="text-lg font-bold font-mono text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.incomeTotal)}
               </div>
             </div>
@@ -206,7 +207,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <div className="flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">
                 <ArrowDownRight size={14} /> Total Spent
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="text-lg font-bold font-mono text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.expenseTotal)}
               </div>
             </div>
@@ -277,14 +278,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+              <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.selfCare.remaining)}
               </div>
               <div className="text-[11px] text-purple-700/80 dark:text-purple-300/80">buffer remaining</div>
             </div>
             <div className="pt-1 border-t border-purple-500/15 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-neutral-400">Daily Safe Pace:</span>
-              <span className="font-bold text-slate-900 dark:text-white">
+              <span className="font-bold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.selfCare.dailySafePace || 0)}/day
               </span>
             </div>
@@ -301,7 +302,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+              <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.investments.spent)}
               </div>
               <div className="text-[11px] text-teal-700/80 dark:text-teal-300/80">
@@ -310,7 +311,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
             <div className="pt-1 border-t border-teal-500/15 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-neutral-400">Progress:</span>
-              <span className="font-bold text-teal-700 dark:text-teal-300">
+              <span className="font-bold font-mono text-teal-700 dark:text-teal-300">
                 {(summary.investments.fundedProgressPct || 0).toFixed(0)}%
               </span>
             </div>
@@ -327,7 +328,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </span>
             </div>
             <div>
-              <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+              <div className="text-xl font-extrabold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.essentials.spent)}
               </div>
               <div className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
@@ -336,7 +337,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
             <div className="pt-1 border-t border-blue-500/15 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-neutral-400">Committed Bills:</span>
-              <span className="font-bold text-slate-900 dark:text-white">
+              <span className="font-bold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.essentials.committedBills || 0)}/mo
               </span>
             </div>
@@ -392,24 +393,33 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               const isOverdue = bill.daysLeft < 0;
               const isToday = bill.daysLeft === 0;
               const isTomorrow = bill.daysLeft === 1;
+              const isReminderDue = bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
 
               let tagText = `In ${bill.daysLeft} days`;
-              let tagStyle = 'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
+              let tagStyle =
+                'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
               if (isOverdue) {
                 tagText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
                 tagStyle = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40';
               } else if (isToday) {
                 tagText = 'Due Today';
-                tagStyle = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 animate-pulse';
+                tagStyle =
+                  'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 animate-pulse';
               } else if (isTomorrow) {
                 tagText = 'Tomorrow';
+                tagStyle = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
+              } else if (isReminderDue) {
                 tagStyle = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
               }
 
               return (
                 <div
                   key={bill.id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-colors"
+                  className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${
+                    isReminderDue
+                      ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/40 hover:border-amber-500/60'
+                      : 'bg-slate-50 dark:bg-white/5 border-slate-200/70 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -429,20 +439,29 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             <Zap size={12} className="text-indigo-600 dark:text-indigo-400" />
                           </span>
                         )}
+                        {isReminderDue && (
+                          <span
+                            title={`Reminder Alert (${bill.reminderDaysBefore}d before)`}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300"
+                          >
+                            <Bell size={11} className="text-amber-500 dark:text-amber-400" />
+                            Reminder
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tagStyle}`}>
                           {tagText}
                         </span>
                         <span className="text-xs text-slate-500 dark:text-neutral-400">
-                          {format(new Date(bill.nextDueDate), 'MMM d')}
+                          {format(parseISO(bill.nextDueDate), 'MMM d')}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    <span className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
                       {formatCurrency(bill.amount, bill.currencyCode)}
                     </span>
                     <button
@@ -513,7 +532,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
                   Total Spent
                 </span>
-                <span className="text-lg font-extrabold text-slate-900 dark:text-white">
+                <span className="text-lg font-extrabold font-mono text-slate-900 dark:text-white">
                   {formatCurrency(summary.expenseTotal)}
                 </span>
               </div>
@@ -541,10 +560,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     </div>
 
                     <div className="text-right">
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-white block">
+                      <span className="text-xs font-extrabold font-mono text-slate-900 dark:text-white block">
                         {formatCurrency(item.amount)}
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-neutral-400">
+                      <span className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
                         {item.percentage.toFixed(1)}%
                       </span>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Check, Trash2, Bell, Zap } from 'lucide-react';
+import { X, Calendar, Check, Trash2, Bell, Zap, PauseCircle, PlayCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import type { RecurringPayment, Category, BillingCycle } from '../types';
 import { db } from '../db/db';
@@ -25,6 +25,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
   const [amountStr, setAmountStr] = useState('');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [isAutoPay, setIsAutoPay] = useState(true);
+  const [isActive, setIsActive] = useState(true);
   const [categoryId, setCategoryId] = useState('');
   const [nextDueDate, setNextDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [reminderEnabled, setReminderEnabled] = useState(true);
@@ -37,6 +38,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
       setAmountStr(recurringToEdit.amount.toString());
       setBillingCycle(recurringToEdit.billingCycle);
       setIsAutoPay(recurringToEdit.isAutoPay);
+      setIsActive(recurringToEdit.isActive ?? true);
       setCategoryId(recurringToEdit.categoryId || '');
       setNextDueDate(recurringToEdit.nextDueDate);
       setReminderEnabled(recurringToEdit.reminderEnabled);
@@ -47,12 +49,25 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
       setAmountStr('');
       setBillingCycle('monthly');
       setIsAutoPay(true);
+      setIsActive(true);
       setCategoryId(categories[0]?.id || '');
       setNextDueDate(format(new Date(), 'yyyy-MM-dd'));
       setReminderEnabled(true);
       setReminderDaysBefore(2);
     }
   }, [recurringToEdit, isOpen, categories]);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -78,6 +93,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
         currencyCode: 'EUR',
         billingCycle,
         isAutoPay,
+        isActive,
         categoryId: categoryId || undefined,
         nextDueDate,
         reminderEnabled,
@@ -97,7 +113,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
         nextDueDate,
         reminderEnabled,
         reminderDaysBefore,
-        isActive: true,
+        isActive,
         createdAt: nowIso,
         updatedAt: nowIso
       };
@@ -120,16 +136,24 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md overflow-hidden"
+      onClick={onClose}
+    >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="recurring-modal-title"
         className="w-full max-w-lg max-w-[100vw] bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
-          <h2 className="text-lg font-bold">
+          <h2 id="recurring-modal-title" className="text-lg font-bold">
             {recurringToEdit ? 'Edit Recurring Bill' : 'Add Recurring Commitment'}
           </h2>
           <button
+            type="button"
+            aria-label="Close modal"
             onClick={() => {
               triggerHaptic(5);
               onClose();
@@ -155,7 +179,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 value={amountStr}
                 onChange={e => setAmountStr(e.target.value)}
                 placeholder="0.00"
-                className="text-4xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-48 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
+                className="text-4xl font-extrabold font-mono tracking-tight bg-transparent text-center focus:outline-none w-48 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />
             </div>
           </div>
@@ -250,9 +274,49 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
             </div>
           </div>
 
-          {/* Auto-Debit & Reminders */}
+          {/* Status, Auto-Debit & Reminders */}
           <div className="p-4 bg-slate-50 dark:bg-neutral-900/60 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-4 min-w-0 overflow-hidden">
+            {/* Active / Paused Status */}
             <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isActive
+                      ? 'bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-neutral-400'
+                  }`}
+                >
+                  {isActive ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    {isActive ? 'Bill Active' : 'Bill Paused'}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">
+                    {isActive ? 'Included in monthly burn & reminders' : 'Paused commitment (excluded from burn)'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isActive}
+                aria-label={isActive ? 'Pause Bill' : 'Resume Bill'}
+                onClick={() => {
+                  triggerHaptic(10);
+                  setIsActive(!isActive);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all shrink-0 ${
+                  isActive
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                }`}
+              >
+                {isActive ? 'Active' : 'Paused'}
+              </button>
+            </div>
+
+            <div className="border-t border-slate-200 dark:border-white/5 pt-3 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <Zap size={16} />

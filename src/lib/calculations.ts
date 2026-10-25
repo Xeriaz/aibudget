@@ -87,7 +87,6 @@ export async function markBillAsPaid(bill: RecurringPayment) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const nowIso = new Date().toISOString();
 
-  // 1. Insert new transaction
   const newTx: Transaction = {
     id: 'tx_' + crypto.randomUUID(),
     title: bill.title,
@@ -100,13 +99,15 @@ export async function markBillAsPaid(bill: RecurringPayment) {
     createdAt: nowIso,
     updatedAt: nowIso
   };
-  await db.transactions.add(newTx);
 
-  // 2. Advance nextDueDate
   const nextDueDate = getNextRecurringDate(bill.nextDueDate, bill.billingCycle);
-  await db.recurringPayments.update(bill.id, {
-    nextDueDate,
-    updatedAt: nowIso
+
+  await db.transaction('rw', [db.transactions, db.recurringPayments], async () => {
+    await db.transactions.add(newTx);
+    await db.recurringPayments.update(bill.id, {
+      nextDueDate,
+      updatedAt: nowIso
+    });
   });
 
   return newTx;
@@ -236,7 +237,7 @@ export function calculateMonthSummary(
   // 1. Effective Income Base
   let effectiveIncomeBase = settings.useManualSalary ? settings.manualSalary : realIncomeTotal;
   if (!settings.useManualSalary && realIncomeTotal <= 0) {
-    effectiveIncomeBase = settings.manualSalary || 2500;
+    effectiveIncomeBase = settings.manualSalary ?? 2500;
   }
 
   // 2. Framework percentages
@@ -250,9 +251,17 @@ export function calculateMonthSummary(
   // Remaining days in the month calculation
   const totalDaysInMonth = getDaysInMonth(targetDate);
   const today = new Date();
-  const isCurrentMonth = today.getFullYear() === targetYear && today.getMonth() === targetMonth;
-  const currentDay = isCurrentMonth ? getDate(today) : 1;
-  const remainingDays = Math.max(1, totalDaysInMonth - currentDay + 1);
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const isPastMonth =
+    targetYear < todayYear || (targetYear === todayYear && targetMonth < todayMonth);
+  const isCurrentMonth = targetYear === todayYear && targetMonth === todayMonth;
+
+  const remainingDays = isPastMonth
+    ? 0
+    : isCurrentMonth
+    ? Math.max(1, totalDaysInMonth - getDate(today) + 1)
+    : totalDaysInMonth;
 
   // Monthly active recurring sum for Essentials committed bills
   let monthlyCommittedBills = 0;
@@ -268,7 +277,7 @@ export function calculateMonthSummary(
   }
 
   const selfCareRemaining = selfCareCap - selfCareSpent;
-  const dailySafePace = Math.max(0, selfCareRemaining / remainingDays);
+  const dailySafePace = remainingDays > 0 ? Math.max(0, selfCareRemaining / remainingDays) : 0;
 
   const investmentFundedPct = investmentsTarget > 0 ? (investmentsSpent / investmentsTarget) * 100 : 0;
   const investmentAmountLeft = Math.max(0, investmentsTarget - investmentsSpent);

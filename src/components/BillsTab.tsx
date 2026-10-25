@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   Repeat,
   Flame,
-  Clock
+  Clock,
+  PauseCircle,
+  PlayCircle
 } from 'lucide-react';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import type { RecurringPayment, Category } from '../types';
@@ -100,23 +102,42 @@ export const BillsTab: React.FC<BillsTabProps> = ({
     onRefresh();
   };
 
+  const handleToggleActive = async (e: React.MouseEvent, bill: RecurringPayment) => {
+    e.stopPropagation();
+    triggerHaptic(10);
+    await db.recurringPayments.update(bill.id, {
+      isActive: !bill.isActive,
+      updatedAt: new Date().toISOString()
+    });
+    onRefresh();
+  };
+
   const renderBillRow = (bill: RecurringPayment & { daysLeft: number }) => {
     const cat = bill.categoryId ? categoryMap.get(bill.categoryId) : undefined;
     const isOverdue = bill.daysLeft < 0;
     const isToday = bill.daysLeft === 0;
     const isTomorrow = bill.daysLeft === 1;
+    const isReminderDue =
+      bill.isActive && bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
 
     let badgeText = `In ${bill.daysLeft}d`;
-    let badgeClass = 'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
+    let badgeClass =
+      'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
     if (isOverdue) {
       badgeText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
-      badgeClass = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30';
+      badgeClass =
+        'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30';
     } else if (isToday) {
       badgeText = 'Due Today';
-      badgeClass = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse';
+      badgeClass =
+        'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse';
     } else if (isTomorrow) {
       badgeText = 'Tomorrow';
-      badgeClass = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
+      badgeClass =
+        'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
+    } else if (isReminderDue) {
+      badgeClass =
+        'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
     }
 
     const monthlyCost = bill.amount * getMonthlyMultiplier(bill.billingCycle);
@@ -129,9 +150,11 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           onSelectToEdit(bill);
         }}
         className={`group flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-neutral-900/80 border shadow-2xs dark:shadow-none transition-all cursor-pointer ${
-          bill.isActive
-            ? 'border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
-            : 'border-slate-200/60 dark:border-white/5 opacity-50 bg-slate-100 dark:bg-neutral-950'
+          !bill.isActive
+            ? 'border-slate-200/60 dark:border-white/5 opacity-50 bg-slate-100 dark:bg-neutral-950'
+            : isReminderDue
+            ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 hover:border-amber-500/60'
+            : 'border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -156,8 +179,30 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                 </span>
               )}
               {bill.reminderEnabled && (
-                <span title={`Reminder ${bill.reminderDaysBefore}d before`}>
-                  <Bell size={12} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                <span
+                  title={
+                    isReminderDue
+                      ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
+                      : `Reminder ${bill.reminderDaysBefore}d before`
+                  }
+                  className={`inline-flex items-center gap-1 ${
+                    isReminderDue
+                      ? 'px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300'
+                      : ''
+                  }`}
+                >
+                  <Bell
+                    size={12}
+                    className={`text-amber-500 dark:text-amber-400 shrink-0 ${
+                      isReminderDue ? 'animate-bounce' : ''
+                    }`}
+                  />
+                  {isReminderDue && <span>Reminder</span>}
+                </span>
+              )}
+              {!bill.isActive && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-neutral-400">
+                  Paused
                 </span>
               )}
             </div>
@@ -173,19 +218,30 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="text-right">
-            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+            <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
               {formatCurrency(bill.amount, bill.currencyCode)}
             </div>
             {bill.billingCycle !== 'monthly' && (
-              <div className="text-[10px] text-slate-500 dark:text-neutral-400">
+              <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
                 ~{formatCurrency(monthlyCost)}/mo
               </div>
             )}
           </div>
 
           <button
+            type="button"
+            onClick={e => handleToggleActive(e, bill)}
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-300 active:scale-95 transition-all"
+            title={bill.isActive ? 'Pause Bill' : 'Resume Bill'}
+            aria-label={bill.isActive ? `Pause ${bill.title}` : `Resume ${bill.title}`}
+          >
+            {bill.isActive ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
+          </button>
+
+          <button
+            type="button"
             onClick={e => handleMarkPaid(e, bill)}
             className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
             title="Mark Paid & Advance Due Date"
@@ -231,13 +287,13 @@ export const BillsTab: React.FC<BillsTabProps> = ({
         <div className="grid grid-cols-2 gap-4 pt-1">
           <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
             <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">Monthly Burn</span>
-            <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
               {formatCurrency(monthlyBurn)}
             </span>
           </div>
           <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
             <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">Annual Commitment</span>
-            <span className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-300">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-indigo-600 dark:text-indigo-300">
               {formatCurrency(annualCommitment)}
             </span>
           </div>

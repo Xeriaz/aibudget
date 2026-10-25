@@ -129,7 +129,7 @@ export default function App() {
         </div>
         <div className="text-center">
           <div className="text-lg font-bold tracking-tight">aiBudget</div>
-          <div className="text-xs text-slate-500 dark:text-neutral-500">Preparing encrypted offline storage...</div>
+          <div className="text-xs text-slate-500 dark:text-neutral-500">Preparing local offline storage...</div>
         </div>
       </div>
     );
