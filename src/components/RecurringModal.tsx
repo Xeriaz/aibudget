@@ -120,12 +120,12 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-md overflow-hidden">
       <div
-        className="w-full max-w-lg bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
+        className="w-full max-w-lg max-w-[100vw] bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
           <h2 className="text-lg font-bold">
             {recurringToEdit ? 'Edit Recurring Bill' : 'Add Recurring Commitment'}
           </h2>
@@ -140,14 +140,14 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto overflow-x-hidden px-5 sm:px-6 py-5 space-y-5 pb-safe">
           {/* Amount input */}
           <div className="text-center py-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
               Billing Amount
             </span>
-            <div className="inline-flex items-center justify-center gap-1">
-              <span className="text-3xl font-light text-slate-400 dark:text-neutral-400">€</span>
+            <div className="inline-flex items-center justify-center gap-1 max-w-full">
+              <span className="text-3xl font-light text-slate-400 dark:text-neutral-400 shrink-0">€</span>
               <input
                 type="number"
                 step="any"
@@ -155,7 +155,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 value={amountStr}
                 onChange={e => setAmountStr(e.target.value)}
                 placeholder="0.00"
-                className="text-4xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-48 text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
+                className="text-4xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-48 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />
             </div>
           </div>
@@ -171,7 +171,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Netflix, Gym, Rent, Internet"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                className="w-full max-w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
 
@@ -184,7 +184,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="Plan tier, account number, or notes"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                className="w-full max-w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -194,7 +194,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
             <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">
               Cadence / Cycle
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {(['weekly', 'monthly', 'quarterly', 'yearly'] as BillingCycle[]).map(cycle => (
                 <button
                   key={cycle}
@@ -203,7 +203,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                     triggerHaptic(10);
                     setBillingCycle(cycle);
                   }}
-                  className={`py-2 rounded-xl text-xs font-semibold capitalize border transition-all ${
+                  className={`py-2 px-1 rounded-xl text-xs font-semibold capitalize border transition-all truncate text-center ${
                     billingCycle === cycle
                       ? 'border-indigo-500 bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-900 dark:text-white'
                       : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:border-slate-300 dark:hover:border-white/20'
@@ -217,29 +217,29 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
 
           {/* Next Due Date & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
                 Next Due Date
               </label>
               <div className="relative">
-                <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500" />
+                <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500 pointer-events-none" />
                 <input
                   type="date"
                   value={nextDueDate}
                   onChange={e => setNextDueDate(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full max-w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
                 Category
               </label>
               <select
                 value={categoryId}
                 onChange={e => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                className="w-full max-w-full px-3 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
               >
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>
@@ -251,15 +251,15 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           </div>
 
           {/* Auto-Debit & Reminders */}
-          <div className="p-4 bg-slate-50 dark:bg-neutral-900/60 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-4">
+          <div className="p-4 bg-slate-50 dark:bg-neutral-900/60 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-4 min-w-0 overflow-hidden">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <Zap size={16} />
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">Auto-Debit Active</div>
-                  <div className="text-xs text-slate-500 dark:text-neutral-400">Payment debits automatically</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">Auto-Debit Active</div>
+                  <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">Payment debits automatically</div>
                 </div>
               </div>
               <input
@@ -269,19 +269,19 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                   triggerHaptic(10);
                   setIsAutoPay(e.target.checked);
                 }}
-                className="w-5 h-5 accent-indigo-500 rounded cursor-pointer"
+                className="w-5 h-5 accent-indigo-500 rounded cursor-pointer shrink-0"
               />
             </div>
 
             <div className="border-t border-slate-200 dark:border-white/5 pt-3">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                     <Bell size={16} />
                   </div>
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Reminder Alert</div>
-                    <div className="text-xs text-slate-500 dark:text-neutral-400">Advance notification badge</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">Reminder Alert</div>
+                    <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">Advance notification badge</div>
                   </div>
                 </div>
                 <input
@@ -291,13 +291,13 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                     triggerHaptic(10);
                     setReminderEnabled(e.target.checked);
                   }}
-                  className="w-5 h-5 accent-indigo-500 rounded cursor-pointer"
+                  className="w-5 h-5 accent-indigo-500 rounded cursor-pointer shrink-0"
                 />
               </div>
 
               {reminderEnabled && (
-                <div className="flex items-center gap-2 pl-11 pt-1 flex-wrap">
-                  <span className="text-xs text-slate-500 dark:text-neutral-400">Remind me:</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 sm:pl-11 pt-1 flex-wrap">
+                  <span className="text-xs text-slate-500 dark:text-neutral-400 shrink-0">Remind me:</span>
                   {[0, 1, 2, 3, 5, 7].map(days => (
                     <button
                       key={days}
@@ -306,7 +306,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                         triggerHaptic(5);
                         setReminderDaysBefore(days);
                       }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                      className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
                         reminderDaysBefore === days
                           ? 'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300'
                           : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:border-slate-300 dark:hover:border-white/20'
@@ -321,12 +321,12 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           </div>
 
           {/* Action buttons */}
-          <div className="pt-2 flex items-center gap-3">
+          <div className="pt-2 pb-2 flex items-center gap-3">
             {recurringToEdit && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all"
+                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all shrink-0"
                 title="Cancel Bill"
               >
                 <Trash2 size={20} />

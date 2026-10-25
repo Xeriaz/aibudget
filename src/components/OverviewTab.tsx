@@ -138,8 +138,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
       {/* Net Cash Flow Hero Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/40 to-slate-100/80 dark:from-neutral-900/90 dark:via-neutral-900/70 dark:to-neutral-950 border border-slate-200/80 dark:border-white/10 p-6 shadow-md dark:shadow-2xl backdrop-blur-xl transition-colors">
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 right-0 translate-x-1/4 w-48 h-48 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 left-0 -translate-x-1/4 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between">

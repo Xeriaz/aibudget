@@ -148,16 +148,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md transition-opacity overflow-hidden">
       <div
-        className="w-full max-w-lg bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200 relative"
+        className="w-full max-w-lg max-w-[100vw] bg-white dark:bg-[#121217] text-slate-900 dark:text-white border-t sm:border border-slate-200 dark:border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200 relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold tracking-tight">
-              {transactionToEdit ? 'Edit Transaction' : 'Fast Log Transaction'}
+              {transactionToEdit ? 'Edit Transaction' : 'Log Transaction'}
             </h2>
           </div>
           <button
@@ -172,7 +172,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto overflow-x-hidden px-5 sm:px-6 py-5 space-y-6 pb-safe">
           {/* Segmented Type Toggle */}
           <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-black/40 rounded-2xl border border-slate-200/80 dark:border-white/5">
             <button
@@ -207,8 +207,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Hero Numeric Amount Input */}
           <div className="text-center py-2">
-            <div className="inline-flex items-center justify-center gap-1">
-              <span className="text-3xl font-light text-slate-400 dark:text-neutral-400">€</span>
+            <div className="inline-flex items-center justify-center gap-1 max-w-full">
+              <span className="text-3xl font-light text-slate-400 dark:text-neutral-400 shrink-0">€</span>
               <input
                 type="number"
                 step="any"
@@ -217,7 +217,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={amountStr}
                 onChange={e => setAmountStr(e.target.value)}
                 placeholder="0.00"
-                className="text-5xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-56 text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
+                className="text-5xl font-extrabold tracking-tight bg-transparent text-center focus:outline-none w-56 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />
             </div>
             {/* Quick Amount Increment Chips */}
@@ -246,7 +246,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder={type === 'expense' ? 'e.g. Supermarket, Cafe, Rent' : 'e.g. Salary, Dividend, Bonus'}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500/80 transition-colors"
+                className="w-full max-w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500/80 transition-colors"
               />
             </div>
 
@@ -255,20 +255,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 Note / Memo (Optional)
               </label>
               <div className="relative">
-                <FileText size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500" />
+                <FileText size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500 pointer-events-none" />
                 <input
                   type="text"
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder="Extra context or tags..."
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500/80 transition-colors"
+                  className="w-full max-w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500/80 transition-colors"
                 />
               </div>
             </div>
           </div>
 
           {/* Category Horizontal Selector */}
-          <div>
+          <div className="w-full min-w-0">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
                 Category
@@ -276,13 +276,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowNewCatModal(true)}
-                className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1"
+                className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 shrink-0"
               >
                 <Plus size={14} /> New Category
               </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 pt-1 no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-2 pt-1 no-scrollbar w-full min-w-0 overscroll-x-contain">
               {filteredCategories.map(cat => {
                 const isSelected = categoryId === cat.id;
                 return (
@@ -318,23 +318,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               Date
             </label>
             <div className="relative">
-              <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500" />
+              <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500 pointer-events-none" />
               <input
                 type="date"
                 value={dateStr}
                 onChange={e => setDateStr(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/80 transition-colors"
+                className="w-full max-w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-neutral-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/80 transition-colors"
               />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-2 flex items-center gap-3">
+          <div className="pt-2 pb-2 flex items-center gap-3">
             {transactionToEdit && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all"
+                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all shrink-0"
                 title="Delete Transaction"
               >
                 <Trash2 size={20} />
@@ -353,7 +353,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         {/* Embedded Quick New Category Creator Modal */}
         {showNewCatModal && (
-          <div className="absolute inset-0 bg-white dark:bg-[#0c0c10] z-20 p-6 flex flex-col justify-between animate-in fade-in duration-150">
+          <div className="absolute inset-0 bg-white dark:bg-[#0c0c10] z-20 p-5 sm:p-6 flex flex-col justify-between animate-in fade-in duration-150 overflow-y-auto overflow-x-hidden">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10">
                 <h3 className="font-bold text-base flex items-center gap-2 text-slate-900 dark:text-white">
@@ -378,7 +378,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     value={newCatName}
                     onChange={e => setNewCatName(e.target.value)}
                     placeholder="e.g. Pet Care, Games, Coffee"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full max-w-full px-4 py-2.5 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
@@ -455,7 +455,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             </div>
 
-            <div className="pt-4 flex gap-3">
+            <div className="pt-4 pb-safe flex gap-3">
               <button
                 type="button"
                 onClick={() => setShowNewCatModal(false)}

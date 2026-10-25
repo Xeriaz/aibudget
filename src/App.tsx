@@ -4,8 +4,7 @@ import {
   Receipt,
   CalendarClock,
   Sliders,
-  Plus,
-  ShieldCheck
+  Plus
 } from 'lucide-react';
 import { db, initializeDatabase, DEFAULT_SETTINGS } from './db/db';
 import type { Transaction, Category, RecurringPayment, PlanSettings } from './types';
@@ -51,6 +50,21 @@ export default function App() {
     }
     localStorage.setItem('aibudget_theme', theme);
   }, [theme]);
+
+  // Lock body scroll when a modal is open to prevent background/rubber-band scrolling on iOS
+  useEffect(() => {
+    if (isTxModalOpen || isRecurringModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isTxModalOpen, isRecurringModalOpen]);
 
   // Load all DB data
   const loadData = useCallback(async () => {
@@ -133,12 +147,9 @@ export default function App() {
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 leading-none">
+              <div className="flex items-center leading-none">
                 <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
                   ai<span className="text-indigo-600 dark:text-indigo-400">Budget</span>
-                </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <ShieldCheck size={9} /> Offline
                 </span>
               </div>
             </div>
@@ -251,12 +262,12 @@ export default function App() {
             <span className="text-[10px] mt-0.5 tracking-tight">Ledger</span>
           </button>
 
-          {/* Center Floating Fast Log Action */}
+          {/* Center Floating Log Action */}
           <div className="flex-1 flex justify-center -mt-5">
             <button
               onClick={handleOpenAddTx}
               className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-indigo-400 text-white shadow-xl shadow-indigo-600/35 flex items-center justify-center active:scale-90 transition-all border-2 border-slate-50 dark:border-[#09090b]"
-              title="Fast Log Transaction"
+              title="Log Transaction"
             >
               <Plus size={24} strokeWidth={2.5} />
             </button>

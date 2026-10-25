@@ -217,7 +217,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 
       {/* Hero Burn Projection Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-50/90 via-white to-slate-100/90 dark:from-indigo-950/60 dark:via-neutral-900/90 dark:to-neutral-950 border border-indigo-500/20 p-5 shadow-md dark:shadow-2xl backdrop-blur-xl space-y-4 transition-colors">
-        <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/15 dark:bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-12 right-0 translate-x-1/4 w-40 h-40 bg-indigo-500/15 dark:bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
