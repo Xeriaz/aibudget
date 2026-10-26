@@ -138,6 +138,12 @@ export const lt = {
     "cycleMonthly": "Kas mėnesį",
     "cycleQuarterly": "Kas ketvirtį",
     "cycleYearly": "Kas metus",
+    "orderBy": "Rikiuoti pagal",
+    "sortByDueDate": "Terminą",
+    "sortByPrice": "Kainą",
+    "billsByPrice": "Sąskaitos pagal kainą",
+    "sortByDueDateAria": "Rikiuoti sąskaitas pagal apmokėjimo terminą",
+    "sortByPriceAria": "Rikiuoti sąskaitas pagal kainą",
     "reminderAlertDue": "Priminimas: terminas sueina per {{days}} d.",
     "reminderDaysBefore": "Priminimas likus {{days}} d."
   },

@@ -11,7 +11,8 @@ import {
   PauseCircle,
   PlayCircle,
   ArrowDown,
-  ArrowUp
+  ArrowUp,
+  ArrowDownUp
 } from 'lucide-react';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -44,10 +45,30 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [filterActiveOnly, setFilterActiveOnly] = useState(true);
+  const [sortBy, setSortBy] = useState<'dueDate' | 'price'>(() => {
+    const saved = localStorage.getItem('aibudget_bills_sort_by');
+    return saved === 'price' || saved === 'dueDate' ? saved : 'dueDate';
+  });
+  const [priceSortOrder, setPriceSortOrder] = useState<'desc' | 'asc'>(() => {
+    const saved = localStorage.getItem('aibudget_bills_price_sort_order');
+    return saved === 'asc' || saved === 'desc' ? saved : 'desc';
+  });
   const [futureSortOrder, setFutureSortOrder] = useState<'desc' | 'asc'>(() => {
     const saved = localStorage.getItem('aibudget_future_commitments_sort');
     return saved === 'asc' || saved === 'desc' ? saved : 'desc';
   });
+
+  const handleSortByChange = (nextSort: 'dueDate' | 'price') => {
+    triggerHaptic(5);
+    setSortBy(nextSort);
+    localStorage.setItem('aibudget_bills_sort_by', nextSort);
+  };
+
+  const handlePriceSortOrderChange = (order: 'desc' | 'asc') => {
+    triggerHaptic(5);
+    setPriceSortOrder(order);
+    localStorage.setItem('aibudget_bills_price_sort_order', order);
+  };
 
   const handleSortChange = (order: 'desc' | 'asc') => {
     triggerHaptic(5);
@@ -115,6 +136,23 @@ export const BillsTab: React.FC<BillsTabProps> = ({
       laterCommitments: later
     };
   }, [recurring, filterActiveOnly, futureSortOrder]);
+
+  // Bills sorted by price (amount)
+  const billsByPrice = useMemo(() => {
+    const list = filterActiveOnly ? recurring.filter(r => r.isActive) : recurring;
+    const items = list.map(r => ({
+      ...r,
+      daysLeft: getDaysUntilDue(r.nextDueDate)
+    }));
+
+    if (priceSortOrder === 'desc') {
+      items.sort((a, b) => b.amount - a.amount || a.daysLeft - b.daysLeft);
+    } else {
+      items.sort((a, b) => a.amount - b.amount || a.daysLeft - b.daysLeft);
+    }
+
+    return items;
+  }, [recurring, filterActiveOnly, priceSortOrder]);
 
   const handleMarkPaid = async (e: React.MouseEvent, bill: RecurringPayment) => {
     e.stopPropagation();
@@ -352,59 +390,51 @@ export const BillsTab: React.FC<BillsTabProps> = ({
         </div>
       </div>
 
-      {/* Filter Toggle */}
-      <div className="flex items-center justify-between px-1">
-        <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-          {t('bills.scheduledBills')}
-        </span>
-        <button
-          onClick={() => {
-            triggerHaptic(5);
-            setFilterActiveOnly(!filterActiveOnly);
-          }}
-          className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium"
-        >
-          {filterActiveOnly ? t('bills.showAllWithPaused') : t('bills.activeOnly')}
-        </button>
-      </div>
+      {/* Ordering and Filter Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+            {t('bills.orderBy')}:
+          </span>
+          <div className="flex items-center bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/80 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => handleSortByChange('dueDate')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                sortBy === 'dueDate'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={t('bills.sortByDueDateAria')}
+              aria-label={t('bills.sortByDueDateAria')}
+            >
+              <Calendar size={13} />
+              <span>{t('bills.sortByDueDate')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSortByChange('price')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                sortBy === 'price'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={t('bills.sortByPriceAria')}
+              aria-label={t('bills.sortByPriceAria')}
+            >
+              <ArrowDownUp size={13} />
+              <span>{t('bills.sortByPrice')}</span>
+            </button>
+          </div>
 
-      {/* Section 1: Due Within 7 Days */}
-      {dueWithin7Days.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 px-1 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-            <Clock size={14} /> {t('bills.dueInNext7Days')} ({dueWithin7Days.length})
-          </div>
-          <div className="space-y-2">
-            {dueWithin7Days.map(renderBillRow)}
-          </div>
-        </div>
-      )}
-
-      {/* Section 2: Due This Month */}
-      {dueThisMonth.length > 0 && (
-        <div className="space-y-2 pt-2">
-          <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-            <Calendar size={14} /> {t('bills.dueLaterThisMonth')} ({dueThisMonth.length})
-          </div>
-          <div className="space-y-2">
-            {dueThisMonth.map(renderBillRow)}
-          </div>
-        </div>
-      )}
-
-      {/* Section 3: Later Commitments */}
-      {laterCommitments.length > 0 && (
-        <div className="space-y-2 pt-2">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-              <Repeat size={14} /> {t('bills.upcomingLater')} ({laterCommitments.length})
-            </div>
+          {/* When ordered by price: direction toggle */}
+          {sortBy === 'price' && (
             <div className="flex items-center bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/80 dark:border-white/5">
               <button
                 type="button"
-                onClick={() => handleSortChange('desc')}
+                onClick={() => handlePriceSortOrderChange('desc')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  futureSortOrder === 'desc'
+                  priceSortOrder === 'desc'
                     ? 'bg-indigo-600 text-white shadow-2xs'
                     : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
@@ -416,9 +446,9 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleSortChange('asc')}
+                onClick={() => handlePriceSortOrderChange('asc')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  futureSortOrder === 'asc'
+                  priceSortOrder === 'asc'
                     ? 'bg-indigo-600 text-white shadow-2xs'
                     : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
@@ -429,15 +459,110 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                 <span>{t('bills.sortAsc')}</span>
               </button>
             </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(5);
+            setFilterActiveOnly(!filterActiveOnly);
+          }}
+          className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium self-end sm:self-center"
+        >
+          {filterActiveOnly ? t('bills.showAllWithPaused') : t('bills.activeOnly')}
+        </button>
+      </div>
+
+      {/* When ordered by Price */}
+      {sortBy === 'price' && billsByPrice.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+            <ArrowDownUp size={14} className="text-indigo-600 dark:text-indigo-400" />
+            {t('bills.billsByPrice')} ({billsByPrice.length})
           </div>
           <div className="space-y-2">
-            {laterCommitments.map(renderBillRow)}
+            {billsByPrice.map(renderBillRow)}
           </div>
         </div>
       )}
 
+      {/* When ordered by Due Date */}
+      {sortBy === 'dueDate' && (
+        <>
+          {/* Section 1: Due Within 7 Days */}
+          {dueWithin7Days.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-1 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                <Clock size={14} /> {t('bills.dueInNext7Days')} ({dueWithin7Days.length})
+              </div>
+              <div className="space-y-2">
+                {dueWithin7Days.map(renderBillRow)}
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Due This Month */}
+          {dueThisMonth.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+                <Calendar size={14} /> {t('bills.dueLaterThisMonth')} ({dueThisMonth.length})
+              </div>
+              <div className="space-y-2">
+                {dueThisMonth.map(renderBillRow)}
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Later Commitments */}
+          {laterCommitments.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+                  <Repeat size={14} /> {t('bills.upcomingLater')} ({laterCommitments.length})
+                </div>
+                <div className="flex items-center bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/80 dark:border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => handleSortChange('desc')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      futureSortOrder === 'desc'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title={t('bills.sortDesc')}
+                    aria-label={t('bills.sortDescAria')}
+                  >
+                    <ArrowDown size={12} />
+                    <span>{t('bills.sortDesc')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSortChange('asc')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      futureSortOrder === 'asc'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title={t('bills.sortAsc')}
+                    aria-label={t('bills.sortAscAria')}
+                  >
+                    <ArrowUp size={12} />
+                    <span>{t('bills.sortAsc')}</span>
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {laterCommitments.map(renderBillRow)}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Unified empty state when no bills in any category */}
-      {dueWithin7Days.length === 0 && dueThisMonth.length === 0 && laterCommitments.length === 0 && (
+      {((sortBy === 'dueDate' && dueWithin7Days.length === 0 && dueThisMonth.length === 0 && laterCommitments.length === 0) ||
+        (sortBy === 'price' && billsByPrice.length === 0)) && (
         <div className="py-12 px-6 text-center rounded-3xl bg-white/80 dark:bg-neutral-900/50 border border-slate-200/80 dark:border-white/5 space-y-3 shadow-xs dark:shadow-none">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400">
             <Calendar size={22} />

@@ -272,4 +272,72 @@ describe('Flow 4: Recurring Bills & Mark as Paid Automation', () => {
     expect(screen.queryByText(/due later this month/i)).not.toBeInTheDocument();
     expect(screen.queryByText('No recurring bills set up yet')).not.toBeInTheDocument();
   });
+
+  it('supports ordering bills by price (highest to lowest and lowest to highest) and toggling back to due date', async () => {
+    await initializeDatabase();
+    const today = new Date();
+    const dueDateIn2Days = format(addDays(today, 2), 'yyyy-MM-dd');
+    const dueDateIn15Days = format(addDays(today, 15), 'yyyy-MM-dd');
+    const dueDateIn60Days = format(addMonths(today, 2), 'yyyy-MM-dd');
+
+    await db.recurringPayments.bulkAdd([
+      makeRecurringPayment({
+        id: 'rec_coffee',
+        title: 'Coffee Beans Sub',
+        amount: 15,
+        nextDueDate: dueDateIn2Days,
+        isActive: true
+      }),
+      makeRecurringPayment({
+        id: 'rec_rent',
+        title: 'Apartment Rent',
+        amount: 1200,
+        nextDueDate: dueDateIn15Days,
+        isActive: true
+      }),
+      makeRecurringPayment({
+        id: 'rec_internet',
+        title: 'Gigabit Fiber',
+        amount: 45,
+        nextDueDate: dueDateIn60Days,
+        isActive: true
+      })
+    ]);
+
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /bills/i }));
+    expect(await screen.findByRole('button', { name: /due date/i })).toBeInTheDocument();
+
+    // Default is Due Date ordering
+    const dueDateBtn = screen.getByRole('button', { name: /due date/i });
+    const priceBtn = screen.getByRole('button', { name: /price/i });
+    expect(dueDateBtn).toBeInTheDocument();
+    expect(priceBtn).toBeInTheDocument();
+
+    // Switch to Price ordering
+    await user.click(priceBtn);
+    expect(await screen.findByText(/bills by price \(3\)/i)).toBeInTheDocument();
+    expect(localStorage.getItem('aibudget_bills_sort_by')).toBe('price');
+
+    // Default price sort is descending: Apartment Rent (1200) -> Gigabit Fiber (45) -> Coffee Beans Sub (15)
+    let titles = screen.getAllByText(/Apartment Rent|Gigabit Fiber|Coffee Beans Sub/).map(el => el.textContent);
+    expect(titles).toEqual(['Apartment Rent', 'Gigabit Fiber', 'Coffee Beans Sub']);
+
+    // Toggle to ascending price sort
+    const ascBtn = screen.getByRole('button', { name: /asc/i });
+    await user.click(ascBtn);
+    expect(localStorage.getItem('aibudget_bills_price_sort_order')).toBe('asc');
+
+    // Ascending price sort: Coffee Beans Sub (15) -> Gigabit Fiber (45) -> Apartment Rent (1200)
+    titles = screen.getAllByText(/Apartment Rent|Gigabit Fiber|Coffee Beans Sub/).map(el => el.textContent);
+    expect(titles).toEqual(['Coffee Beans Sub', 'Gigabit Fiber', 'Apartment Rent']);
+
+    // Switch back to Due Date ordering
+    await user.click(dueDateBtn);
+    expect(localStorage.getItem('aibudget_bills_sort_by')).toBe('dueDate');
+    expect(screen.queryByText(/bills by price/i)).not.toBeInTheDocument();
+  });
 });

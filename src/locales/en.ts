@@ -138,6 +138,12 @@ export const en = {
     "cycleMonthly": "Monthly",
     "cycleQuarterly": "Quarterly",
     "cycleYearly": "Yearly",
+    "orderBy": "Order by",
+    "sortByDueDate": "Due Date",
+    "sortByPrice": "Price",
+    "billsByPrice": "Bills by Price",
+    "sortByDueDateAria": "Order bills by due date",
+    "sortByPriceAria": "Order bills by price",
     "reminderAlertDue": "Reminder Alert: Due within {{days}}d",
     "reminderDaysBefore": "Reminder {{days}}d before"
   },
