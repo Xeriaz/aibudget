@@ -14,10 +14,8 @@ import {
   Palette,
   Edit2,
   Check,
-  X,
-  Type
+  X
 } from 'lucide-react';
-import { AVAILABLE_FONTS, type FontFamilyId } from '../lib/fonts';
 import type { PlanSettings, Category } from '../types';
 import { db } from '../db/db';
 import {
@@ -36,8 +34,6 @@ interface SettingsTabProps {
   categories: Category[];
   theme: 'dark' | 'light';
   onThemeChange: (theme: 'dark' | 'light') => void;
-  font?: FontFamilyId;
-  onFontChange?: (font: FontFamilyId) => void;
   onRefresh: () => void;
 }
 
@@ -46,8 +42,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   categories,
   theme,
   onThemeChange,
-  font = 'plus-jakarta-sans',
-  onFontChange,
   onRefresh
 }) => {
   // Plan Settings state
@@ -338,58 +332,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           </button>
         </div>
-        {/* Font Family Preference (Local device only) */}
-        <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Type size={16} className="text-indigo-600 dark:text-indigo-400" />
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
-                Typography & Font
-              </h4>
-            </div>
-            <span className="text-[11px] font-medium text-slate-400 dark:text-neutral-500">
-              Only switches on this device
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {AVAILABLE_FONTS.map((item) => {
-              const isSelected = font === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(10);
-                    onFontChange?.(item.id);
-                  }}
-                  className={`p-3 rounded-2xl text-left border transition-all flex items-center justify-between group ${
-                    isSelected
-                      ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
-                      : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/15'
-                  }`}
-                >
-                  <div className="min-w-0 pr-2">
-                    <div
-                      className="text-sm font-bold text-slate-900 dark:text-white truncate"
-                      style={{ fontFamily: item.family }}
-                    >
-                      {item.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-neutral-400 leading-tight mt-0.5 truncate">
-                      {item.description}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shrink-0">
-                      <Check size={12} strokeWidth={3} />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Income Base Configuration */}

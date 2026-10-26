@@ -41,11 +41,6 @@ describe('Flow 5 & 6: Settings Configuration, Category Mappings & Data Import/Re
     expect(document.documentElement.classList.contains('light')).toBe(true);
     expect(localStorage.getItem('aibudget_theme')).toBe('light');
 
-    // Switch Font to Inter
-    await user.click(screen.getByRole('button', { name: /inter/i }));
-    expect(localStorage.getItem('aibudget_font')).toBe('inter');
-    expect(document.documentElement.style.getPropertyValue('--font-sans')).toContain('Inter');
-
     // Enable manual salary mode and choose €3200 preset
     const salaryCheckbox = screen.getByRole('checkbox');
     await user.click(salaryCheckbox);
