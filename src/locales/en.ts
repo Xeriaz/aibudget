@@ -75,6 +75,8 @@ export const en = {
     title: 'All Transactions',
     searchPlaceholder: 'Search merchants, notes, categories...',
     allCategories: 'All Categories',
+    allBuckets: 'All Buckets',
+    bucket: 'Budget Bucket',
     allTypes: 'All Types',
     expensesOnly: 'Expenses Only',
     incomeOnly: 'Income Only',

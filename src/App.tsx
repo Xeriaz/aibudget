@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { db, initializeDatabase, DEFAULT_SETTINGS } from './db/db';
-import type { Transaction, Category, RecurringPayment, PlanSettings } from './types';
+import type { Transaction, Category, RecurringPayment, PlanSettings, BucketType } from './types';
 import { OverviewTab } from './components/OverviewTab';
 import { LedgerTab } from './components/LedgerTab';
 import { BillsTab } from './components/BillsTab';
@@ -28,6 +28,17 @@ export default function App() {
   const [recurring, setRecurring] = useState<RecurringPayment[]>([]);
   const [settings, setSettings] = useState<PlanSettings>(DEFAULT_SETTINGS);
   const [isReady, setIsReady] = useState(false);
+
+  // Cross-tab ledger filter states (e.g. when jumping from Lifestyle & Wealth cards to Ledger)
+  const [ledgerMonthFilter, setLedgerMonthFilter] = useState<string>('all');
+  const [ledgerBucketFilter, setLedgerBucketFilter] = useState<BucketType | 'all'>('all');
+
+  const handleNavigateToLedgerWithBucket = (bucket: BucketType, targetDate: Date) => {
+    const monthStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    setLedgerMonthFilter(monthStr);
+    setLedgerBucketFilter(bucket);
+    setActiveTab('ledger');
+  };
 
   // Modals state
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -186,6 +197,7 @@ export default function App() {
             onOpenFastAdd={handleOpenAddTx}
             onSelectTransactionToEdit={handleSelectTxToEdit}
             onNavigateToTab={setActiveTab}
+            onNavigateToLedgerWithBucket={handleNavigateToLedgerWithBucket}
           />
         )}
 
@@ -196,6 +208,10 @@ export default function App() {
             onSelectTransactionToEdit={handleSelectTxToEdit}
             onRefresh={loadData}
             onOpenFastAdd={handleOpenAddTx}
+            initialMonth={ledgerMonthFilter}
+            initialBucket={ledgerBucketFilter}
+            onMonthChange={setLedgerMonthFilter}
+            onBucketChange={setLedgerBucketFilter}
           />
         )}
 

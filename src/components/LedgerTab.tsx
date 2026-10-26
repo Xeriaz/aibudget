@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import type { Transaction, Category } from '../types';
-import { calculateYearlyCashFlow, formatCurrency, triggerHaptic } from '../lib/calculations';
+import type { Transaction, Category, BucketType } from '../types';
+import { calculateYearlyCashFlow, formatCurrency, triggerHaptic, resolveCategoryBucket } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 import { db } from '../db/db';
 
@@ -22,6 +22,10 @@ interface LedgerTabProps {
   onSelectTransactionToEdit: (tx: Transaction) => void;
   onRefresh: () => void;
   onOpenFastAdd: () => void;
+  initialMonth?: string;
+  initialBucket?: BucketType | 'all';
+  onMonthChange?: (month: string) => void;
+  onBucketChange?: (bucket: BucketType | 'all') => void;
 }
 
 export const LedgerTab: React.FC<LedgerTabProps> = ({
@@ -29,14 +33,41 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
   categories,
   onSelectTransactionToEdit,
   onRefresh,
-  onOpenFastAdd
+  onOpenFastAdd,
+  initialMonth,
+  initialBucket,
+  onMonthChange,
+  onBucketChange
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>('all'); // format: 'YYYY-MM' or 'all'
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth || 'all'); // format: 'YYYY-MM' or 'all'
+  const [selectedBucket, setSelectedBucket] = useState<BucketType | 'all'>(initialBucket || 'all');
   const [chartYear, setChartYear] = useState<number>(() => new Date().getFullYear());
+
+  useEffect(() => {
+    if (initialMonth !== undefined) {
+      setSelectedMonth(initialMonth);
+    }
+  }, [initialMonth]);
+
+  useEffect(() => {
+    if (initialBucket !== undefined) {
+      setSelectedBucket(initialBucket);
+    }
+  }, [initialBucket]);
+
+  const handleMonthChange = (m: string) => {
+    setSelectedMonth(m);
+    onMonthChange?.(m);
+  };
+
+  const handleBucketChange = (b: BucketType | 'all') => {
+    setSelectedBucket(b);
+    onBucketChange?.(b);
+  };
 
   // Map of categories
   const categoryMap = useMemo(() => {
@@ -70,17 +101,19 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     searchQuery !== '' ||
     selectedType !== 'all' ||
     selectedCategoryId !== 'all' ||
-    selectedMonth !== 'all';
+    selectedMonth !== 'all' ||
+    selectedBucket !== 'all';
 
   const resetFilters = () => {
     triggerHaptic(10);
     setSearchQuery('');
     setSelectedType('all');
     setSelectedCategoryId('all');
-    setSelectedMonth('all');
+    handleMonthChange('all');
+    handleBucketChange('all');
   };
 
-  // Base filtered transactions (type + category + search, excluding month filter so the 12-month chart shows all months)
+  // Base filtered transactions (type + category + bucket + search, excluding month filter so the 12-month chart shows all months)
   const baseFilteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       // Type filter
@@ -88,6 +121,13 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
 
       // Category filter
       if (selectedCategoryId !== 'all' && t.categoryId !== selectedCategoryId) return false;
+
+      // Bucket filter (only applies to expenses as in 50/30/20 lifestyle frameworks)
+      if (selectedBucket !== 'all') {
+        if (t.type !== 'expense') return false;
+        const cat = t.categoryId ? categoryMap.get(t.categoryId) : undefined;
+        if (resolveCategoryBucket(cat) !== selectedBucket) return false;
+      }
 
       // Search query
       if (searchQuery.trim() !== '') {
@@ -102,7 +142,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
 
       return true;
     });
-  }, [transactions, selectedType, selectedCategoryId, searchQuery, categoryMap]);
+  }, [transactions, selectedType, selectedCategoryId, selectedBucket, searchQuery, categoryMap]);
 
   // Yearly 12-month comparison data
   const yearlySummary = useMemo(() => {
@@ -171,14 +211,14 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
 
   const handleToggleMonthBar = (monthKey: string) => {
     triggerHaptic(10);
-    setSelectedMonth(prev => (prev === monthKey ? 'all' : monthKey));
+    handleMonthChange(selectedMonth === monthKey ? 'all' : monthKey);
   };
 
   const handlePrevYear = () => {
     triggerHaptic(10);
     setChartYear(y => y - 1);
     if (selectedMonth !== 'all') {
-      setSelectedMonth('all');
+      handleMonthChange('all');
     }
   };
 
@@ -186,7 +226,18 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     triggerHaptic(10);
     setChartYear(y => y + 1);
     if (selectedMonth !== 'all') {
-      setSelectedMonth('all');
+      handleMonthChange('all');
+    }
+  };
+
+  const getBucketLabel = (b: BucketType) => {
+    switch (b) {
+      case 'essentials':
+        return t('overview.essentialsTitle');
+      case 'investments':
+        return t('overview.investmentsTitle');
+      case 'selfCareAndWants':
+        return t('overview.selfCareTitle');
     }
   };
 
@@ -379,18 +430,32 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             </span>
           </div>
 
-          {selectedMonth !== 'all' && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(5);
-                setSelectedMonth('all');
-              }}
-              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              Showing {selectedMonth} • Clear
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedMonth !== 'all' && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(5);
+                  handleMonthChange('all');
+                }}
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Showing {selectedMonth} • Clear
+              </button>
+            )}
+            {selectedBucket !== 'all' && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(5);
+                  handleBucketChange('all');
+                }}
+                className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+              >
+                Showing {getBucketLabel(selectedBucket)} • Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -449,7 +514,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             value={selectedMonth}
             onChange={e => {
               triggerHaptic(5);
-              setSelectedMonth(e.target.value);
+              handleMonthChange(e.target.value);
             }}
             aria-label="Filter by month"
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
@@ -465,6 +530,26 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               ))}
           </select>
         )}
+
+        {/* Budget Bucket Filter Dropdown */}
+        <select
+          value={selectedBucket}
+          onChange={e => {
+            triggerHaptic(5);
+            handleBucketChange(e.target.value as BucketType | 'all');
+          }}
+          aria-label="Filter by budget bucket"
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none shrink-0 transition-all ${
+            selectedBucket !== 'all'
+              ? 'bg-indigo-600/15 dark:bg-indigo-500/20 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold'
+              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300'
+          }`}
+        >
+          <option value="all">{t('ledger.allBuckets')}</option>
+          <option value="essentials">{t('overview.essentialsTitle')}</option>
+          <option value="selfCareAndWants">{t('overview.selfCareTitle')}</option>
+          <option value="investments">{t('overview.investmentsTitle')}</option>
+        </select>
 
         {/* Category Filter Dropdown */}
         <select

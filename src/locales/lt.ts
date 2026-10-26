@@ -75,6 +75,8 @@ export const lt = {
     title: 'Visos operacijos',
     searchPlaceholder: 'Ieškoti pagal aprašymą ar gavėją...',
     allCategories: 'Visos kategorijos',
+    allBuckets: 'Visos grupės',
+    bucket: 'Biudžeto grupė',
     allTypes: 'Visi tipai',
     expensesOnly: 'Tik išlaidos',
     incomeOnly: 'Tik pajamos',

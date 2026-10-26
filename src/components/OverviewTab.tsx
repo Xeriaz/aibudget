@@ -17,7 +17,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { format, addMonths, subMonths, isSameMonth, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import type { Transaction, Category, RecurringPayment, PlanSettings } from '../types';
+import type { Transaction, Category, RecurringPayment, PlanSettings, BucketType } from '../types';
 import {
   calculateMonthSummary,
   formatCurrency,
@@ -40,6 +40,7 @@ interface OverviewTabProps {
   onOpenFastAdd?: () => void;
   onSelectTransactionToEdit: (tx: Transaction) => void;
   onNavigateToTab: (tab: 'overview' | 'ledger' | 'bills' | 'settings') => void;
+  onNavigateToLedgerWithBucket?: (bucket: BucketType, targetDate: Date) => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -51,7 +52,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   settings,
   theme = 'dark',
   onRefresh,
-  onNavigateToTab
+  onNavigateToTab,
+  onNavigateToLedgerWithBucket
 }) => {
   const { t, i18n } = useTranslation();
   const [billsTimeframe, setBillsTimeframe] = useState<'7' | '30'>('7');
@@ -72,6 +74,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const handleResetToToday = () => {
     triggerHaptic(15);
     setCurrentDate(new Date());
+  };
+
+  const handleBucketClick = (bucket: BucketType) => {
+    triggerHaptic(10);
+    if (onNavigateToLedgerWithBucket) {
+      onNavigateToLedgerWithBucket(bucket, currentDate);
+    } else {
+      onNavigateToTab('ledger');
+    }
   };
 
   // Recharts Donut data
@@ -257,25 +268,49 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="space-y-1">
           <div className="h-3 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden flex p-0.5 border border-slate-200 dark:border-white/5">
             <div
-              className="h-full bg-blue-500 rounded-l-full transition-all duration-300"
+              onClick={() => handleBucketClick('essentials')}
+              className="h-full bg-blue-500 rounded-l-full transition-all duration-300 cursor-pointer hover:opacity-85"
               style={{ width: `${essentialsCapPct}%` }}
               title={`Essentials Cap: ${essentialsCapPct.toFixed(0)}%`}
+              
             />
             <div
-              className="h-full bg-purple-500 transition-all duration-300"
+              onClick={() => handleBucketClick('selfCareAndWants')}
+              className="h-full bg-purple-500 transition-all duration-300 cursor-pointer hover:opacity-85"
               style={{ width: `${selfCareCapPct}%` }}
               title={`Self-Care Cap: ${selfCareCapPct.toFixed(0)}%`}
+              
             />
             <div
-              className="h-full bg-teal-400 rounded-r-full transition-all duration-300"
+              onClick={() => handleBucketClick('investments')}
+              className="h-full bg-teal-400 rounded-r-full transition-all duration-300 cursor-pointer hover:opacity-85"
               style={{ width: `${investmentsCapPct}%` }}
               title={`Investments Cap: ${investmentsCapPct.toFixed(0)}%`}
+              
             />
           </div>
           <div className="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-neutral-400 px-1">
-            <span className="text-blue-600 dark:text-blue-400">{t('overview.essentialsTitle')} ({essentialsCapPct.toFixed(0)}%)</span>
-            <span className="text-purple-600 dark:text-purple-400">{t('overview.selfCareTitle')} ({selfCareCapPct.toFixed(0)}%)</span>
-            <span className="text-teal-600 dark:text-teal-400">{t('overview.investmentsTitle')} ({investmentsCapPct.toFixed(0)}%)</span>
+            <button
+              type="button"
+              onClick={() => handleBucketClick('essentials')}
+              className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              {t('overview.essentialsTitle')} ({essentialsCapPct.toFixed(0)}%)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBucketClick('selfCareAndWants')}
+              className="text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+            >
+              {t('overview.selfCareTitle')} ({selfCareCapPct.toFixed(0)}%)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBucketClick('investments')}
+              className="text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
+            >
+              {t('overview.investmentsTitle')} ({investmentsCapPct.toFixed(0)}%)
+            </button>
           </div>
         </div>
 
@@ -283,7 +318,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
           {/* Self-Care Remaining & Daily Safe Pace */}
           <div
-            className={`p-3.5 rounded-2xl bg-purple-500/10 border space-y-2 transition-colors ${
+            onClick={() => handleBucketClick('selfCareAndWants')}
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleBucketClick('selfCareAndWants');
+              }
+            }}
+            className={`p-3.5 rounded-2xl bg-purple-500/10 border space-y-2 cursor-pointer transition-all hover:bg-purple-500/15 hover:border-purple-500/50 hover:shadow-md active:scale-[0.98] ${
               isSelfCareOver
                 ? 'border-rose-500/40 dark:border-rose-500/50'
                 : 'border-purple-500/20'
@@ -337,7 +380,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
 
           {/* Investments Target & Funded % */}
-          <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 space-y-2">
+          <div
+            onClick={() => handleBucketClick('investments')}
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleBucketClick('investments');
+              }
+            }}
+            className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 space-y-2 cursor-pointer transition-all hover:bg-teal-500/15 hover:border-teal-500/50 hover:shadow-md active:scale-[0.98]"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
                 <TrendingUp size={14} /> {t('overview.investmentsTitle')}
@@ -364,7 +417,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           {/* Essentials Cap & Committed Bills */}
           <div
-            className={`p-3.5 rounded-2xl bg-blue-500/10 border space-y-2 transition-colors ${
+            onClick={() => handleBucketClick('essentials')}
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleBucketClick('essentials');
+              }
+            }}
+            className={`p-3.5 rounded-2xl bg-blue-500/10 border space-y-2 cursor-pointer transition-all hover:bg-blue-500/15 hover:border-blue-500/50 hover:shadow-md active:scale-[0.98] ${
               isEssentialsOver
                 ? 'border-rose-500/40 dark:border-rose-500/50'
                 : 'border-blue-500/20'
@@ -728,7 +789,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
-                        width: `${Math.min(100, Math.max(0, item.percentage))}%`,
+                        width: `${Math.min(100, Math.max(0, item.percentage))}%` ,
                         backgroundColor: item.category.colorHex || '#6366f1'
                       }}
                     />
