@@ -41,6 +41,7 @@ export default function App() {
 
   useEffect(() => {
     const root = document.documentElement;
+    const targetColor = theme === 'light' ? '#ffffff' : '#09090b';
     if (theme === 'light') {
       root.classList.remove('dark');
       root.classList.add('light');
@@ -48,6 +49,8 @@ export default function App() {
       root.classList.remove('light');
       root.classList.add('dark');
     }
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    metas.forEach((m) => m.setAttribute('content', targetColor));
     localStorage.setItem('aibudget_theme', theme);
   }, [theme]);
 

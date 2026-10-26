@@ -30,7 +30,7 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         background_color: '#09090b',
-        theme_color: '#6366f1',
+        theme_color: '#09090b',
         orientation: 'portrait',
         icons: [
           {

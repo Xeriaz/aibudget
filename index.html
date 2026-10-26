@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="aiBudget" />
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#09090b" />
     <meta name="description" content="Offline-first personal finance PWA with 50/30/20 lifestyle budgeting, bill tracking, and Dexie IndexedDB storage." />
 
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
@@ -21,6 +23,11 @@
           if (savedTheme === 'light') {
             document.documentElement.classList.remove('dark');
             document.documentElement.classList.add('light');
+            var metas = document.querySelectorAll('meta[name="theme-color"]');
+            metas.forEach(function(m) { m.setAttribute('content', '#ffffff'); });
+          } else if (savedTheme === 'dark') {
+            var metas = document.querySelectorAll('meta[name="theme-color"]');
+            metas.forEach(function(m) { m.setAttribute('content', '#09090b'); });
           }
           localStorage.removeItem('aibudget_font');
           document.documentElement.style.removeProperty('--font-sans');
