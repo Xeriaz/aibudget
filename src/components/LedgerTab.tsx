@@ -12,7 +12,7 @@ import {
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import type { Transaction, Category, BucketType } from '../types';
-import { calculateYearlyCashFlow, formatCurrency, triggerHaptic, resolveCategoryBucket } from '../lib/calculations';
+import { calculateYearlyCashFlow, formatCurrency, triggerHaptic, resolveCategoryBucket, getDateLocale, getCategoryDisplayName } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 import { db } from '../db/db';
 
@@ -39,7 +39,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
   onMonthChange,
   onBucketChange
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
@@ -199,7 +199,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
       const d = parseISO(dateStr);
       if (isToday(d)) return t('ledger.today');
       if (isYesterday(d)) return t('ledger.yesterday');
-      return format(d, 'EEEE, MMM d, yyyy');
+      return format(d, 'EEEE, MMM d, yyyy', { locale: getDateLocale(i18n.language) });
     } catch {
       return dateStr;
     }
@@ -274,7 +274,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
       {/* Annual Month-by-Month Spend vs Income Diagram */}
       <div
         className="p-4 bg-white dark:bg-neutral-900/90 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-sm dark:shadow-lg backdrop-blur-md space-y-3 transition-colors"
-        aria-label="Annual Cash Flow Chart"
+        aria-label={t('ledger.annualChartAria')}
       >
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               <button
                 type="button"
                 onClick={handlePrevYear}
-                aria-label="Previous Year"
+                aria-label={t('ledger.previousYear')}
                 className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 active:scale-95 transition-all"
               >
                 <ChevronLeft size={14} />
@@ -323,7 +323,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               <button
                 type="button"
                 onClick={handleNextYear}
-                aria-label="Next Year"
+                aria-label={t('ledger.nextYear')}
                 className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 active:scale-95 transition-all"
               >
                 <ChevronRight size={14} />
@@ -349,9 +349,9 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                 key={m.monthKey}
                 type="button"
                 onClick={() => handleToggleMonthBar(m.monthKey)}
-                aria-label={`${m.monthLabel} ${chartYear}: Income ${formatCurrency(m.income)}, Spend ${formatCurrency(m.expense)}`}
+                aria-label={`${m.monthLabel} ${chartYear}: ${t('ledger.income')} ${formatCurrency(m.income)}, ${t('ledger.expense')} ${formatCurrency(m.expense)}`}
                 aria-pressed={isSelected}
-                title={`${m.monthLabel} ${chartYear}\nIncome: ${formatCurrency(m.income)}\nSpend: ${formatCurrency(m.expense)}\nNet: ${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}`}
+                title={`${m.monthLabel} ${chartYear}\n${t('ledger.income')}: ${formatCurrency(m.income)}\n${t('ledger.expense')}: ${formatCurrency(m.expense)}\n${t('ledger.net')}: ${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}`}
                 className={`group flex flex-col items-center justify-end rounded-xl py-1.5 px-0.5 transition-all focus:outline-none ${
                   isSelected
                     ? 'bg-indigo-500/15 dark:bg-indigo-500/20 ring-1 ring-indigo-500/50'
@@ -404,19 +404,19 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
         <div className="flex items-center justify-between text-[11px] pt-0.5 text-slate-500 dark:text-neutral-400 flex-wrap gap-2">
           <div className="flex items-center gap-3 font-mono">
             <span>
-              {chartYear} In:{' '}
+              {chartYear} {t('ledger.summaryIn')}{' '}
               <strong className="text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(yearlySummary.totalIncome)}
               </strong>
             </span>
             <span>
-              Out:{' '}
+              {t('ledger.summaryOut')}{' '}
               <strong className="text-rose-600 dark:text-rose-400">
                 {formatCurrency(yearlySummary.totalExpense)}
               </strong>
             </span>
             <span>
-              Net:{' '}
+              {t('ledger.summaryNet')}{' '}
               <strong
                 className={
                   yearlySummary.totalNet >= 0
@@ -440,7 +440,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                 }}
                 className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
               >
-                Showing {selectedMonth} • Clear
+                {t('ledger.showingFilter', { label: selectedMonth })}
               </button>
             )}
             {selectedBucket !== 'all' && (
@@ -452,7 +452,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                 }}
                 className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline"
               >
-                Showing {getBucketLabel(selectedBucket)} • Clear
+                {t('ledger.showingFilter', { label: getBucketLabel(selectedBucket) })}
               </button>
             )}
           </div>
@@ -516,7 +516,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               triggerHaptic(5);
               handleMonthChange(e.target.value);
             }}
-            aria-label="Filter by month"
+            aria-label={t('ledger.filterByMonth')}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
           >
             <option value="all">{t('ledger.allTime')}</option>
@@ -538,7 +538,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             triggerHaptic(5);
             handleBucketChange(e.target.value as BucketType | 'all');
           }}
-          aria-label="Filter by budget bucket"
+          aria-label={t('ledger.filterByBucket')}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none shrink-0 transition-all ${
             selectedBucket !== 'all'
               ? 'bg-indigo-600/15 dark:bg-indigo-500/20 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold'
@@ -558,13 +558,13 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             triggerHaptic(5);
             setSelectedCategoryId(e.target.value);
           }}
-          aria-label="Filter by category"
+          aria-label={t('ledger.filterByCategory')}
           className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
         >
           <option value="all">{t('ledger.allCategories')}</option>
           {categories.map(c => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {getCategoryDisplayName(c, t)}
             </option>
           ))}
         </select>
@@ -634,7 +634,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-                              <span className="truncate">{cat?.name || 'Uncategorized'}</span>
+                              <span className="truncate">{cat ? getCategoryDisplayName(cat, t) : t('transactionModal.uncategorized')}</span>
                               {tx.note && <span className="truncate opacity-75">• {tx.note}</span>}
                             </div>
                           </div>

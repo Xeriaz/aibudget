@@ -28,7 +28,7 @@ import {
   resetDatabaseToDefaults,
   type ParsedImportPreview
 } from '../lib/exportImport';
-import { triggerHaptic, formatCurrency, resolveCategoryBucket } from '../lib/calculations';
+import { triggerHaptic, formatCurrency, resolveCategoryBucket, getCategoryDisplayName } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 import { setLanguage, type SupportedLanguage } from '../i18n';
 
@@ -683,7 +683,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       </div>
                     ) : (
                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {cat.name}
+                        {getCategoryDisplayName(cat, t)}
                       </span>
                     )}
                   </div>

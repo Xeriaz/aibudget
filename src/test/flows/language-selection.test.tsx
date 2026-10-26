@@ -56,6 +56,18 @@ describe('Language Selection (English default vs Lithuanian)', () => {
     expect(screen.getByRole('button', { name: /^nustatymai$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^registruoti$/i })).toBeInTheDocument();
 
+    // Verify category mapping shows Lithuanian "Išlaidos sau" for Self-Care category
+    expect(screen.getByText('Išlaidos sau')).toBeInTheDocument();
+
+    // Switch to Overview tab and verify Lithuanian titles
+    await user.click(screen.getByRole('button', { name: /^apžvalga$/i }));
+    expect(await screen.findByText('Grynasis pinigų srautas')).toBeInTheDocument();
+    expect(screen.getByText('Išlaidos sau ir gyvenimo būdas')).toBeInTheDocument();
+    expect(screen.getByText('Būtinosios išlaidos')).toBeInTheDocument();
+
+    // Return to Settings to switch back
+    await user.click(screen.getByRole('button', { name: /^nustatymai$/i }));
+
     // Switch back to English
     const enButton = screen.getByRole('button', { name: /english/i });
     await user.click(enButton);

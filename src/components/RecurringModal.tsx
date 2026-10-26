@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import type { RecurringPayment, Category, BillingCycle } from '../types';
 import { db } from '../db/db';
-import { triggerHaptic } from '../lib/calculations';
+import { triggerHaptic, getCategoryDisplayName } from '../lib/calculations';
 
 interface RecurringModalProps {
   isOpen: boolean;
@@ -155,7 +155,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           </h2>
           <button
             type="button"
-            aria-label="Close modal"
+            aria-label={t('common.closeModal')}
             onClick={() => {
               triggerHaptic(5);
               onClose();
@@ -269,7 +269,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
               >
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.name}
+                    {getCategoryDisplayName(cat, t)}
                   </option>
                 ))}
               </select>
@@ -303,7 +303,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 type="button"
                 role="switch"
                 aria-checked={isActive}
-                aria-label={isActive ? 'Pause Bill' : 'Resume Bill'}
+                aria-label={isActive ? t('recurringModal.pauseBill') : t('recurringModal.resumeBill')}
                 onClick={() => {
                   triggerHaptic(10);
                   setIsActive(!isActive);
@@ -363,7 +363,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
 
               {reminderEnabled && (
                 <div className="flex items-center gap-1.5 sm:gap-2 sm:pl-11 pt-1 flex-wrap">
-                  <span className="text-xs text-slate-500 dark:text-neutral-400 shrink-0">Remind me:</span>
+                  <span className="text-xs text-slate-500 dark:text-neutral-400 shrink-0">{t('recurringModal.remindMe')}</span>
                   {[0, 1, 2, 3, 5, 7].map(days => (
                     <button
                       key={days}
@@ -378,7 +378,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                           : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:border-slate-300 dark:hover:border-white/20'
                       }`}
                     >
-                      {days === 0 ? 'Same day' : `${days}d before`}
+                      {days === 0 ? t('recurringModal.sameDay') : t('recurringModal.daysBefore', { count: days })}
                     </button>
                   ))}
                 </div>
@@ -393,7 +393,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 type="button"
                 onClick={handleDelete}
                 className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all shrink-0"
-                title="Cancel Bill"
+                title={t('recurringModal.cancelBillTooltip')}
               >
                 <Trash2 size={20} />
               </button>

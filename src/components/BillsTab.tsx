@@ -21,7 +21,8 @@ import {
   getDaysUntilDue,
   getMonthlyMultiplier,
   markBillAsPaid,
-  triggerHaptic
+  triggerHaptic,
+  getDateLocale
 } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 import { db } from '../db/db';
@@ -41,7 +42,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
   onSelectToEdit,
   onRefresh
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [filterActiveOnly, setFilterActiveOnly] = useState(true);
   const [futureSortOrder, setFutureSortOrder] = useState<'desc' | 'asc'>(() => {
     const saved = localStorage.getItem('aibudget_future_commitments_sort');
@@ -138,6 +139,8 @@ export const BillsTab: React.FC<BillsTabProps> = ({
     const isTomorrow = bill.daysLeft === 1;
     const isReminderDue =
       bill.isActive && bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
+    const dateLocale = getDateLocale(i18n.language);
+    const cycleLabel = t(`bills.cycle${bill.billingCycle.charAt(0).toUpperCase() + bill.billingCycle.slice(1)}`, { defaultValue: bill.billingCycle });
 
     let badgeText = t('overview.dueInDays', { days: bill.daysLeft });
     let badgeClass =
@@ -203,8 +206,8 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                   <span
                     title={
                       isReminderDue
-                        ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
-                        : `Reminder ${bill.reminderDaysBefore}d before`
+                        ? t('bills.reminderAlertDue', { days: bill.reminderDaysBefore })
+                        : t('bills.reminderDaysBefore', { days: bill.reminderDaysBefore })
                     }
                     className={`inline-flex items-center gap-1 ${
                       isReminderDue
@@ -218,7 +221,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                         isReminderDue ? 'animate-bounce' : ''
                       }`}
                     />
-                    {isReminderDue && <span>Reminder</span>}
+                    {isReminderDue && <span>{t('bills.reminder')}</span>}
                   </span>
                 )}
                 {!bill.isActive && (
@@ -234,7 +237,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                   {badgeText}
                 </span>
                 <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize">
-                  {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                  {cycleLabel} • {format(parseISO(bill.nextDueDate), 'MMM d', { locale: dateLocale })}
                 </span>
               </div>
             </div>
@@ -261,7 +264,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               {badgeText}
             </span>
             <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize truncate">
-              {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+              {cycleLabel} • {format(parseISO(bill.nextDueDate), 'MMM d', { locale: dateLocale })}
             </span>
           </div>
 
@@ -292,7 +295,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               type="button"
               onClick={e => handleMarkPaid(e, bill)}
               className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
-              title="Mark Paid & Advance Due Date"
+              title={t('bills.markPaidTooltip')}
             >
               <CheckCircle2 size={13} /> {t('overview.paid')}
             </button>
@@ -326,7 +329,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Flame size={14} className="text-orange-500 dark:text-orange-400" /> Committed Fixed Burn
+            <Flame size={14} className="text-orange-500 dark:text-orange-400" /> {t('bills.committedBurn')}
           </span>
           <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
             {activeCount === 1 ? t('bills.activeCommitments', { count: activeCount }) : t('bills.activeCommitments_plural', { count: activeCount })}
@@ -352,7 +355,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
       {/* Filter Toggle */}
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-          Scheduled Bills
+          {t('bills.scheduledBills')}
         </span>
         <button
           onClick={() => {
@@ -361,7 +364,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           }}
           className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium"
         >
-          {filterActiveOnly ? 'Show All (incl. Paused)' : t('bills.activeOnly')}
+          {filterActiveOnly ? t('bills.showAllWithPaused') : t('bills.activeOnly')}
         </button>
       </div>
 
@@ -406,7 +409,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                     : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title={t('bills.sortDesc')}
-                aria-label="Sort descending"
+                aria-label={t('bills.sortDescAria')}
               >
                 <ArrowDown size={12} />
                 <span>{t('bills.sortDesc')}</span>
@@ -420,7 +423,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                     : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title={t('bills.sortAsc')}
-                aria-label="Sort ascending"
+                aria-label={t('bills.sortAscAria')}
               >
                 <ArrowUp size={12} />
                 <span>{t('bills.sortAsc')}</span>

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Transaction, Category, BucketType } from '../types';
 import { db } from '../db/db';
 import { CategoryIcon, AVAILABLE_ICONS } from './CategoryIcon';
-import { triggerHaptic, resolveCategoryBucket } from '../lib/calculations';
+import { triggerHaptic, resolveCategoryBucket, getCategoryDisplayName } from '../lib/calculations';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -323,7 +323,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
           <button
             type="button"
-            aria-label="Close modal"
+            aria-label={t('common.closeModal')}
             onClick={() => {
               triggerHaptic(5);
               onClose();
@@ -478,7 +478,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
               {displayedCategories.length === 0 ? (
                 <div className="col-span-full py-4 text-center text-xs text-slate-400 dark:text-neutral-500">
-                  No categories in this group. Click "New Category" to add one!
+                  {t('transactionModal.noCategoriesInGroup')}
                 </div>
               ) : (
                 displayedCategories.map(cat => {
@@ -506,14 +506,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                         >
                           <CategoryIcon iconName={cat.iconName} size={14} />
                         </div>
-                        <span className="truncate">{cat.name}</span>
+                        <span className="truncate">{getCategoryDisplayName(cat, t)}</span>
                       </button>
                       {!cat.isDefault && (
                         <button
                           type="button"
                           onClick={e => handleDeleteCustomCategory(e, cat)}
-                          title={`Delete category ${cat.name}`}
-                          aria-label={`Delete category ${cat.name}`}
+                          title={t('transactionModal.deleteCategoryTitle', { name: cat.name })}
+                          aria-label={t('transactionModal.deleteCategoryTitle', { name: cat.name })}
                           className="absolute right-1.5 p-1 rounded-md text-slate-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400 transition-colors"
                         >
                           <X size={12} />

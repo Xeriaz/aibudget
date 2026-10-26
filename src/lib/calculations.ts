@@ -19,6 +19,7 @@ import type {
   BillingCycle
 } from '../types';
 import { db } from '../db/db';
+import { lt as ltLocale, enUS as enLocale } from 'date-fns/locale';
 
 export function triggerHaptic(pattern: number | number[] = 10) {
   if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
@@ -419,4 +420,20 @@ export function calculateMonthSummary(
     categorySpending,
     activeRecurringTotalMonthly
   };
+}
+
+
+export function getDateLocale(lang?: string) {
+  return lang?.startsWith('lt') ? ltLocale : enLocale;
+}
+
+export function getCategoryDisplayName(
+  cat: Category | undefined,
+  t: (key: string, options?: any) => string
+): string {
+  if (!cat) return '';
+  if (cat.isDefault && cat.id) {
+    return t(`categories.${cat.id}`, { defaultValue: cat.name });
+  }
+  return cat.name;
 }

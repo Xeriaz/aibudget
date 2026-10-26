@@ -24,7 +24,9 @@ import {
   getDaysUntilDue,
   getMonthlyMultiplier,
   markBillAsPaid,
-  triggerHaptic
+  triggerHaptic,
+  getDateLocale,
+  getCategoryDisplayName
 } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
 
@@ -87,7 +89,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   // Recharts Donut data
   const donutData = summary.categorySpending.map(item => ({
-    name: item.category.name,
+    name: getCategoryDisplayName(item.category, t),
     value: item.amount,
     color: item.category.colorHex || '#6366f1'
   }));
@@ -124,7 +126,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const isEssentialsOver = summary.essentials.spent > summary.essentials.budgetCap;
   const essentialsOverAmount = Math.max(0, summary.essentials.spent - summary.essentials.budgetCap);
 
-  const monthYearLabel = format(currentDate, 'MMMM yyyy');
+  const dateLocale = getDateLocale(i18n.language);
+  const monthYearLabel = i18n.language === 'lt'
+    ? format(currentDate, 'yyyy LLLL', { locale: dateLocale })
+    : format(currentDate, 'MMMM yyyy', { locale: dateLocale });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -374,7 +379,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   isSelfCareOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
                 }`}
               >
-                {formatCurrency(summary.selfCare.dailySafePace || 0)}/day
+                {formatCurrency(summary.selfCare.dailySafePace || 0)}{t('overview.perDay')}
               </span>
             </div>
           </div>
@@ -474,7 +479,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <div className="pt-1 border-t border-blue-500/15 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-neutral-400">{t('overview.committedBills')}:</span>
               <span className="font-bold font-mono text-slate-900 dark:text-white">
-                {formatCurrency(summary.essentials.committedBills || 0)}/mo
+                {formatCurrency(summary.essentials.committedBills || 0)}{t('overview.perMonth')}
               </span>
             </div>
           </div>
@@ -555,6 +560,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               }
 
               const monthlyCost = bill.amount * getMonthlyMultiplier(bill.billingCycle);
+              const cycleLabel =
+                bill.billingCycle === 'weekly'
+                  ? t('bills.cycleWeekly')
+                  : bill.billingCycle === 'monthly'
+                  ? t('bills.cycleMonthly')
+                  : bill.billingCycle === 'quarterly'
+                  ? t('bills.cycleQuarterly')
+                  : t('bills.cycleYearly');
 
               return (
                 <div
@@ -598,8 +611,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             <span
                               title={
                                 isReminderDue
-                                  ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
-                                  : `Reminder ${bill.reminderDaysBefore}d before`
+                                  ? t('overview.reminderAlertDue', { days: bill.reminderDaysBefore })
+                                  : t('overview.reminderDaysBefore', { days: bill.reminderDaysBefore })
                               }
                               className={`inline-flex items-center gap-1 ${
                                 isReminderDue
@@ -613,7 +626,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                                   isReminderDue ? 'animate-bounce' : ''
                                 }`}
                               />
-                              {isReminderDue && <span>Reminder</span>}
+                              {isReminderDue && <span>{t('bills.reminder')}</span>}
                             </span>
                           )}
                           {!bill.isActive && (
@@ -629,7 +642,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             {tagText}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize">
-                            {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                            {cycleLabel} • {format(parseISO(bill.nextDueDate), 'MMM d', { locale: dateLocale })}
                           </span>
                         </div>
                       </div>
@@ -642,7 +655,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       </div>
                       {bill.billingCycle !== 'monthly' && (
                         <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
-                          ~{formatCurrency(monthlyCost)}/mo
+                          ~{formatCurrency(monthlyCost)}{t('overview.perMonth')}
                         </div>
                       )}
                     </div>
@@ -656,7 +669,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                         {tagText}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize truncate">
-                        {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                        {cycleLabel} • {format(parseISO(bill.nextDueDate), 'MMM d', { locale: dateLocale })}
                       </span>
                     </div>
 
@@ -668,7 +681,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                         </div>
                         {bill.billingCycle !== 'monthly' && (
                           <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
-                            ~{formatCurrency(monthlyCost)}/mo
+                            ~{formatCurrency(monthlyCost)}{t('overview.perMonth')}
                           </div>
                         )}
                       </div>
@@ -680,7 +693,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           handleMarkPaid(bill);
                         }}
                         className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
-                        title="Mark Paid & Advance Due Date"
+                        title={t('bills.markPaidTooltip')}
                       >
                         <CheckCircle2 size={13} /> {t('overview.paid')}
                       </button>
@@ -771,7 +784,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       >
                         <CategoryIcon iconName={item.category.iconName} size={14} />
                       </div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{item.category.name}</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{getCategoryDisplayName(item.category, t)}</span>
                     </div>
 
                     <div className="text-right">
