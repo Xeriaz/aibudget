@@ -62,7 +62,7 @@ describe('Language Selection (English default vs Lithuanian)', () => {
     // Switch to Overview tab and verify Lithuanian titles
     await user.click(screen.getByRole('button', { name: /^apžvalga$/i }));
     expect(await screen.findByText('Grynasis pinigų srautas')).toBeInTheDocument();
-    expect(screen.getByText('Išlaidos sau ir gyvenimo būdas')).toBeInTheDocument();
+    expect(screen.getByText('Išlaidos sau')).toBeInTheDocument();
     expect(screen.getByText('Būtinosios išlaidos')).toBeInTheDocument();
 
     // Return to Settings to switch back

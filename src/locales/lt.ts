@@ -41,7 +41,7 @@ export const lt = {
     "previousMonth": "Ankstesnis mėnuo",
     "nextMonth": "Kitas mėnuo",
     "essentialsTitle": "Būtinosios išlaidos",
-    "selfCareTitle": "Išlaidos sau ir gyvenimo būdas",
+    "selfCareTitle": "Išlaidos sau",
     "investmentsTitle": "Investicijos ir turtas",
     "dailySafeToSpend": "Dienos saugi suma",
     "safePace": "saugus tempas",
