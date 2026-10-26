@@ -227,4 +227,49 @@ describe('Flow 4: Recurring Bills & Mark as Paid Automation', () => {
     expect(titlesDesc).toEqual(['Car Insurance', 'Domain Renewal', 'Cloud Backup']);
     expect(localStorage.getItem('aibudget_future_commitments_sort')).toBe('desc');
   });
+
+  it('shows a unified empty state when no bills exist at all', async () => {
+    await initializeDatabase();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /bills/i }));
+    expect(await screen.findByText(/subscriptions & recurring bills/i)).toBeInTheDocument();
+
+    // All empty sections are hidden, unified empty state is shown
+    expect(screen.queryByText(/due in next 7 days/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/due later this month/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/future commitments/i)).not.toBeInTheDocument();
+    expect(screen.getByText('No recurring bills set up yet')).toBeInTheDocument();
+  });
+
+  it('hides empty 7-day and later-this-month sections when bills only exist in future commitments', async () => {
+    await initializeDatabase();
+    const future2Mos = format(addMonths(new Date(), 2), 'yyyy-MM-dd');
+    await db.recurringPayments.add(
+      makeRecurringPayment({
+        id: 'rec_future_only',
+        title: 'Quarterly Gym',
+        amount: 150,
+        nextDueDate: future2Mos,
+        isActive: true
+      })
+    );
+
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /bills/i }));
+
+    // Future Commitments is shown directly
+    expect(await screen.findByText('Future Commitments (1)')).toBeInTheDocument();
+    expect(screen.getByText('Quarterly Gym')).toBeInTheDocument();
+
+    // 7-day and later-this-month sections are completely hidden
+    expect(screen.queryByText(/due in next 7 days/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/due later this month/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('No recurring bills set up yet')).not.toBeInTheDocument();
+  });
 });
