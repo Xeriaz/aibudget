@@ -10,6 +10,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import type { Transaction, Category } from '../types';
 import { calculateYearlyCashFlow, formatCurrency, triggerHaptic } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
@@ -30,6 +31,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
   onRefresh,
   onOpenFastAdd
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
@@ -145,7 +147,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
 
   const handleDelete = async (e: React.MouseEvent, txId: string) => {
     e.stopPropagation();
-    if (confirm('Delete this transaction?')) {
+    if (confirm(t('transactionModal.confirmDelete'))) {
       triggerHaptic(25);
       await db.transactions.delete(txId);
       onRefresh();
@@ -155,8 +157,8 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
   const formatDayHeader = (dateStr: string) => {
     try {
       const d = parseISO(dateStr);
-      if (isToday(d)) return 'Today';
-      if (isYesterday(d)) return 'Yesterday';
+      if (isToday(d)) return t('ledger.today');
+      if (isYesterday(d)) return t('ledger.yesterday');
       return format(d, 'EEEE, MMM d, yyyy');
     } catch {
       return dateStr;
@@ -194,7 +196,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
       <div className="grid grid-cols-3 gap-2 p-3 bg-white dark:bg-neutral-900/90 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm dark:shadow-lg backdrop-blur-md transition-colors">
         <div className="text-center">
           <span className="text-[10px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block">
-            Transactions
+            {t('nav.ledger')}
           </span>
           <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
             {filteredTransactions.length}
@@ -202,7 +204,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
         </div>
         <div className="text-center border-x border-slate-200 dark:border-white/10">
           <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
-            Inflow
+            {t('ledger.income')}
           </span>
           <span className="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(totalInflow)}
@@ -210,7 +212,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
         </div>
         <div className="text-center">
           <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">
-            Outflow
+            {t('ledger.expense')}
           </span>
           <span className="text-sm sm:text-base font-bold text-rose-600 dark:text-rose-400">
             {formatCurrency(totalOutflow)}
@@ -230,10 +232,10 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             </div>
             <div>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                Monthly Cash Flow
+                {t('ledger.annualComparison')}
               </h3>
               <p className="text-[10px] text-slate-500 dark:text-neutral-400">
-                Tap a month to filter transactions
+                {chartYear}
               </p>
             </div>
           </div>
@@ -243,11 +245,11 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-medium text-slate-500 dark:text-neutral-400">
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-xs bg-emerald-500 inline-block" />
-                Income
+                {t('ledger.income')}
               </span>
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-xs bg-rose-500 inline-block" />
-                Spend
+                {t('ledger.expense')}
               </span>
             </div>
 
@@ -386,7 +388,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               }}
               className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              Showing {selectedMonth} • Clear month
+              Showing {selectedMonth} • Clear
             </button>
           )}
         </div>
@@ -399,7 +401,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search merchants, notes, categories..."
+          placeholder={t('ledger.searchPlaceholder')}
           className="w-full pl-10 pr-9 py-2.5 bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500/80 shadow-2xs dark:shadow-none transition-colors"
         />
         {searchQuery && (
@@ -419,25 +421,25 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             onClick={resetFilters}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold shrink-0 active:scale-95 transition-all"
           >
-            <RotateCcw size={12} /> Reset
+            <RotateCcw size={12} /> {t('ledger.resetFilters')}
           </button>
         )}
 
         {/* Type pills */}
-        {(['all', 'expense', 'income'] as const).map(t => (
+        {(['all', 'expense', 'income'] as const).map(tType => (
           <button
-            key={t}
+            key={tType}
             onClick={() => {
               triggerHaptic(5);
-              setSelectedType(t);
+              setSelectedType(tType);
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize shrink-0 border transition-all ${
-              selectedType === t
+              selectedType === tType
                 ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
                 : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:border-slate-300 dark:hover:border-white/20'
             }`}
           >
-            {t}
+            {tType === 'all' ? t('ledger.allTypes') : tType === 'expense' ? t('ledger.expense') : t('ledger.income')}
           </button>
         ))}
 
@@ -452,7 +454,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             aria-label="Filter by month"
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
           >
-            <option value="all">All Months</option>
+            <option value="all">{t('ledger.allTime')}</option>
             {Array.from(new Set([...availableMonths, ...(selectedMonth !== 'all' ? [selectedMonth] : [])]))
               .sort()
               .reverse()
@@ -474,7 +476,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
           aria-label="Filter by category"
           className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-neutral-300 focus:outline-none shrink-0"
         >
-          <option value="all">All Categories</option>
+          <option value="all">{t('ledger.allCategories')}</option>
           {categories.map(c => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -486,12 +488,12 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
       {/* Date-Grouped Transaction List */}
       {groupedTransactions.length === 0 ? (
         <div className="py-12 text-center rounded-3xl bg-white/80 dark:bg-neutral-900/50 border border-slate-200/80 dark:border-white/5 space-y-3 shadow-xs dark:shadow-none">
-          <p className="text-slate-500 dark:text-neutral-400 text-sm">No transactions match your filters.</p>
+          <p className="text-slate-500 dark:text-neutral-400 text-sm">{t('ledger.noTransactionsFound')}</p>
           <button
             onClick={onOpenFastAdd}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30"
           >
-            <Sparkles size={14} /> Add Transaction
+            <Sparkles size={14} /> {t('common.log')}
           </button>
         </div>
       ) : (
@@ -529,52 +531,45 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                         }}
                         className="group flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/15 shadow-2xs dark:shadow-none cursor-pointer active:scale-[0.99] transition-all"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                             style={{
                               backgroundColor: `${cat?.colorHex || '#6366f1'}20`,
                               color: cat?.colorHex || '#6366f1'
                             }}
                           >
-                            <CategoryIcon iconName={cat?.iconName} size={18} />
+                            <CategoryIcon iconName={cat?.iconName || 'tag'} size={18} />
                           </div>
 
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                              {tx.title}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {tx.title}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400 truncate">
-                              <span>{cat?.name || 'Uncategorized'}</span>
-                              {tx.note && (
-                                <>
-                                  <span>•</span>
-                                  <span className="truncate italic text-slate-400 dark:text-neutral-500">{tx.note}</span>
-                                </>
-                              )}
+                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                              <span className="truncate">{cat?.name || 'Uncategorized'}</span>
+                              {tx.note && <span className="truncate opacity-75">• {tx.note}</span>}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
-                          <div className="text-right">
-                            <span
-                              className={`text-sm sm:text-base font-extrabold flex items-center justify-end gap-0.5 ${
-                                isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                              }`}
-                            >
-                              {isIncome ? '+' : '-'}
-                              {formatCurrency(tx.amount, tx.currencyCode)}
-                            </span>
-                            <span className="text-[10px] text-slate-400 dark:text-neutral-500 block">
-                              {format(parseISO(tx.transactionDate), 'MMM d')}
-                            </span>
-                          </div>
+                          <span
+                            className={`text-sm sm:text-base font-extrabold font-mono ${
+                              isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+                            }`}
+                          >
+                            {isIncome ? '+' : '-'}
+                            {formatCurrency(tx.amount, tx.currencyCode)}
+                          </span>
 
                           <button
                             onClick={e => handleDelete(e, tx.id)}
-                            className="p-1.5 rounded-lg opacity-40 group-hover:opacity-100 hover:bg-rose-500/15 dark:hover:bg-rose-500/20 text-slate-400 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
-                            title="Delete"
+                            title={t('common.delete')}
+                            aria-label={t('common.delete')}
+                            className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                           >
                             <Trash2 size={15} />
                           </button>

@@ -14,8 +14,10 @@ import {
   Palette,
   Edit2,
   Check,
-  X
+  X,
+  Globe
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { PlanSettings, Category } from '../types';
 import { db } from '../db/db';
 import {
@@ -28,6 +30,7 @@ import {
 } from '../lib/exportImport';
 import { triggerHaptic, formatCurrency, resolveCategoryBucket } from '../lib/calculations';
 import { CategoryIcon } from './CategoryIcon';
+import { setLanguage, type SupportedLanguage } from '../i18n';
 
 interface SettingsTabProps {
   settings: PlanSettings;
@@ -44,6 +47,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   onThemeChange,
   onRefresh
 }) => {
+  const { t, i18n } = useTranslation();
+  const currentLang = (i18n.language?.substring(0, 2) || 'en') as SupportedLanguage;
+
   // Plan Settings state
   const [selectedFramework, setSelectedFramework] = useState(settings.selectedFramework);
   const [customEssentialsPct, setCustomEssentialsPct] = useState(settings.customEssentialsPct ?? 50);
@@ -86,6 +92,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [importPreview, isProcessingImport]);
+
+  const handleLanguageChange = (lang: SupportedLanguage) => {
+    triggerHaptic(10);
+    setLanguage(lang);
+  };
 
   const handleSaveSettings = async (overrides?: Partial<PlanSettings>) => {
     const nextEssentials = overrides?.customEssentialsPct ?? customEssentialsPct;
@@ -173,7 +184,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const handleDeleteCustomCategory = async (cat: Category) => {
     if (cat.isDefault) return;
-    if (confirm(`Delete custom category "${cat.name}"? Affected transactions and bills will become uncategorized.`)) {
+    if (confirm(t('settings.confirmDeleteCategory', { name: cat.name }))) {
       triggerHaptic(25);
       await db.transaction(
         'rw',
@@ -216,7 +227,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setImportPreview(preview);
       triggerHaptic(15);
     } catch (err: any) {
-      alert(`Import error: ${err.message || 'Could not parse file'}`);
+      alert(t('settings.importError', { error: err.message || 'Could not parse file' }));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -229,9 +240,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     try {
       await applyImport(importPreview, mode);
       setImportPreview(null);
-      alert(
-        `Successfully imported data with ${mode.toUpperCase()} mode!`
-      );
+      alert(t('settings.importSuccess', { mode: mode.toUpperCase() }));
       onRefresh();
     } catch (err: any) {
       alert(`Failed to apply import: ${err.message}`);
@@ -241,10 +250,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   };
 
   const handleResetData = async () => {
-    if (confirm('Are you sure you want to erase all data and reset to fresh default categories? This action cannot be undone.')) {
+    if (confirm(t('settings.confirmResetData'))) {
       triggerHaptic(50);
       await resetDatabaseToDefaults();
-      alert('Data reset successfully.');
+      alert(t('settings.dataResetSuccess'));
       onRefresh();
     }
   };
@@ -254,11 +263,74 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       {/* Header */}
       <div>
         <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Sliders size={18} className="text-indigo-600 dark:text-indigo-400" /> Lifestyle Plan & Settings
+          <Sliders size={18} className="text-indigo-600 dark:text-indigo-400" /> {t('settings.title')}
         </h2>
         <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-          Configure appearance, income assumptions, budget frameworks, category mapping, and data backups.
+          {t('settings.subtitle')}
         </p>
+      </div>
+
+      {/* Language Selector */}
+      <div className="rounded-3xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 p-5 shadow-sm dark:shadow-xl space-y-4 transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Globe size={16} className="text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('settings.languageTitle')}
+            </h3>
+          </div>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+            {currentLang === 'lt' ? 'Lietuvių' : 'English'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => handleLanguageChange('en')}
+            className={`p-3.5 rounded-2xl text-left border transition-all flex items-center gap-3 ${
+              currentLang === 'en'
+                ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/15'
+            }`}
+          >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xl bg-slate-200/70 dark:bg-white/10">
+              🇬🇧
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                {t('settings.english')}
+                {currentLang === 'en' && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-neutral-400 leading-tight mt-0.5">
+                {t('settings.englishDesc')}
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleLanguageChange('lt')}
+            className={`p-3.5 rounded-2xl text-left border transition-all flex items-center gap-3 ${
+              currentLang === 'lt'
+                ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/15'
+            }`}
+          >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xl bg-slate-200/70 dark:bg-white/10">
+              🇱🇹
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                {t('settings.lithuanian')}
+                {currentLang === 'lt' && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-neutral-400 leading-tight mt-0.5">
+                {t('settings.lithuanianDesc')}
+              </div>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Appearance & Theme Selector */}
@@ -266,7 +338,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Palette size={16} className="text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Appearance & Theme</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('settings.appearanceTitle')}
+            </h3>
           </div>
           <span className="text-xs font-semibold capitalize text-indigo-600 dark:text-indigo-400">
             {theme} Mode
@@ -296,9 +370,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <Sun size={18} />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">Light Theme</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{t('settings.lightTheme')}</div>
               <div className="text-[11px] text-slate-500 dark:text-neutral-400 leading-tight mt-0.5">
-                Crisp daylight surfaces
+                {t('settings.lightThemeDesc')}
               </div>
             </div>
           </button>
@@ -325,14 +399,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <Moon size={18} />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">Dark Theme</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{t('settings.darkTheme')}</div>
               <div className="text-[11px] text-slate-500 dark:text-neutral-400 leading-tight mt-0.5">
-                OLED midnight contrast
+                {t('settings.darkThemeDesc')}
               </div>
             </div>
           </button>
         </div>
-
       </div>
 
       {/* Income Base Configuration */}
@@ -340,11 +413,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarSign size={16} className="text-emerald-600 dark:text-emerald-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Income Base Mode</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('settings.incomeBaseTitle')}
+            </h3>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500 dark:text-neutral-400">
-              {useManualSalary ? 'Fixed Target' : 'Dynamic from Inflows'}
+              {useManualSalary ? t('settings.fixedTarget') : t('settings.dynamicInflows')}
             </span>
             <input
               type="checkbox"
@@ -362,7 +437,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {useManualSalary ? (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 dark:text-neutral-400">Target Monthly Income:</span>
+              <span className="text-xs text-slate-500 dark:text-neutral-400">{t('settings.targetMonthlyIncome')}</span>
               <span className="text-base font-extrabold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(manualSalary)}
               </span>
@@ -410,7 +485,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         ) : (
           <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/70 dark:border-white/5 text-xs text-slate-600 dark:text-neutral-400 leading-relaxed">
-            Your budget caps automatically scale to the total <strong className="text-emerald-600 dark:text-emerald-400">Income</strong> transactions registered in the active month. If no income has been logged yet, it gracefully falls back to your reference salary of {formatCurrency(manualSalary)}.
+            {t('settings.dynamicInflowsDesc', { salary: formatCurrency(manualSalary) })}
           </div>
         )}
       </div>
@@ -420,7 +495,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers size={16} className="text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Allocation Framework</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('settings.allocationFramework')}
+            </h3>
           </div>
           <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{selectedFramework}</span>
         </div>
@@ -428,10 +505,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {/* Framework Cards */}
         <div className="grid grid-cols-2 gap-2.5">
           {[
-            { id: '50/30/20', title: '50 / 30 / 20', desc: 'Standard Balanced (50% Essentials, 30% Wants, 20% Wealth)' },
-            { id: '60/20/20', title: '60 / 20 / 20', desc: 'Urban High-Rent (60% Essentials, 20% Wants, 20% Wealth)' },
-            { id: '70/20/10', title: '70 / 20 / 10', desc: 'Essentials Heavy (70% Essentials, 20% Wants, 10% Wealth)' },
-            { id: 'custom', title: 'Custom Ratio', desc: 'Fine-tune exact percentages to match your personal strategy' }
+            { id: '50/30/20', title: '50 / 30 / 20', desc: t('settings.frameworkBalanced') },
+            { id: '60/20/20', title: '60 / 20 / 20', desc: t('settings.frameworkRent') },
+            { id: '70/20/10', title: '70 / 20 / 10', desc: t('settings.frameworkHeavy') },
+            { id: 'custom', title: 'Custom Ratio', desc: t('settings.frameworkCustom') }
           ].map(f => (
             <button
               key={f.id}
@@ -459,7 +536,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 space-y-4 mt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Custom Sliders
+                {t('settings.customSliders')}
               </span>
               <span
                 className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
@@ -468,14 +545,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     : 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30'
                 }`}
               >
-                Total: {customTotal}% {isCustomValid ? '✓' : '(Must equal 100%)'}
+                {isCustomValid
+                  ? t('settings.totalValid', { total: customTotal })
+                  : t('settings.totalInvalid', { total: customTotal })}
               </span>
             </div>
 
             {/* Essentials Slider */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">Essentials & Needs:</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('settings.essentialsLabel')}</span>
                 <span className="font-extrabold font-mono text-slate-900 dark:text-white">{customEssentialsPct}%</span>
               </div>
               <input
@@ -495,7 +574,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             {/* Self-Care Slider */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-purple-600 dark:text-purple-400 font-semibold">Self-Care & Wants:</span>
+                <span className="text-purple-600 dark:text-purple-400 font-semibold">{t('settings.selfCareLabel')}</span>
                 <span className="font-extrabold font-mono text-slate-900 dark:text-white">{customSelfCarePct}%</span>
               </div>
               <input
@@ -515,7 +594,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             {/* Investments Slider */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-teal-600 dark:text-teal-400 font-semibold">Investments & Wealth:</span>
+                <span className="text-teal-600 dark:text-teal-400 font-semibold">{t('settings.investmentsLabel')}</span>
                 <span className="font-extrabold font-mono text-slate-900 dark:text-white">{customInvestmentsPct}%</span>
               </div>
               <input
@@ -540,10 +619,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Shield size={16} className="text-indigo-600 dark:text-indigo-400" /> Category Bucket Mappings
+              <Shield size={16} className="text-indigo-600 dark:text-indigo-400" /> {t('settings.categoryBucketMappings')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-              Assign each spending category to Essentials, Self-Care, or Investments, and manage custom categories.
+              {t('settings.categoryBucketDesc')}
             </p>
           </div>
         </div>
@@ -615,9 +694,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       onChange={e => handleCategoryBucketChange(cat.id, e.target.value as any)}
                       className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-neutral-300 focus:outline-none focus:border-indigo-500"
                     >
-                      <option value="essentials">Essentials (50%)</option>
-                      <option value="selfCareAndWants">Self-Care (30%)</option>
-                      <option value="investments">Investments (20%)</option>
+                      <option value="essentials">{t('settings.essentialsBucket')}</option>
+                      <option value="selfCareAndWants">{t('settings.selfCareBucket')}</option>
+                      <option value="investments">{t('settings.investmentsBucket')}</option>
                     </select>
 
                     {!cat.isDefault && !isEditingThis && (
@@ -653,10 +732,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       <div className="rounded-3xl bg-white dark:bg-neutral-900/80 border border-slate-200/80 dark:border-white/10 p-5 shadow-sm dark:shadow-xl space-y-4 transition-colors">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <Download size={16} className="text-indigo-600 dark:text-indigo-400" /> Data Portability & Backup
+            <Download size={16} className="text-indigo-600 dark:text-indigo-400" /> {t('settings.dataPortability')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-            Your financial data is stored locally in your browser's IndexedDB. Export anytime for safekeeping.
+            {t('settings.dataPortabilityDesc')}
           </p>
         </div>
 
@@ -665,14 +744,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={handleExportJson}
             className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white active:scale-95 transition-all"
           >
-            <FileCode size={16} className="text-indigo-600 dark:text-indigo-400" /> Export JSON
+            <FileCode size={16} className="text-indigo-600 dark:text-indigo-400" /> {t('settings.exportJson')}
           </button>
 
           <button
             onClick={handleExportCsv}
             className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white active:scale-95 transition-all"
           >
-            <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" /> Export CSV
+            <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" /> {t('settings.exportCsv')}
           </button>
         </div>
 
@@ -689,18 +768,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-500/10 dark:bg-indigo-600/20 hover:bg-indigo-500/20 dark:hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold active:scale-95 transition-all"
           >
-            <Upload size={16} /> Import Backup (.json or .csv)
+            <Upload size={16} /> {t('settings.importBackup')}
           </button>
         </div>
 
         {/* Maintenance / Reset */}
         <div className="pt-4 border-t border-slate-200/80 dark:border-white/5 flex items-center justify-between">
-          <span className="text-xs text-slate-500 dark:text-neutral-500">Reset or purge local cache</span>
+          <span className="text-xs text-slate-500 dark:text-neutral-500">{t('settings.resetOrPurge')}</span>
           <button
             onClick={handleResetData}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold active:scale-95 transition-all"
           >
-            <Trash2 size={13} /> Clear All Data
+            <Trash2 size={13} /> {t('settings.clearAllData')}
           </button>
         </div>
       </div>
@@ -722,7 +801,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
               <h3 id="import-preview-title" className="text-base font-bold flex items-center gap-2">
-                <Upload size={18} className="text-indigo-600 dark:text-indigo-400" /> Import Preview
+                <Upload size={18} className="text-indigo-600 dark:text-indigo-400" /> {t('settings.importPreview')}
               </h3>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 uppercase">
                 {importPreview.type}
@@ -731,21 +810,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
             <div className="space-y-2 text-xs text-slate-600 dark:text-neutral-300">
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                <span className="text-slate-500 dark:text-neutral-400">File:</span>
+                <span className="text-slate-500 dark:text-neutral-400">{t('settings.file')}</span>
                 <span className="font-semibold text-slate-900 dark:text-white truncate max-w-56">{importFileName}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                <span className="text-slate-500 dark:text-neutral-400">Transactions Detected:</span>
+                <span className="text-slate-500 dark:text-neutral-400">{t('settings.txDetected')}</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{importPreview.transactionCount}</span>
               </div>
               {importPreview.type === 'json' && (
                 <>
                   <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                    <span className="text-slate-500 dark:text-neutral-400">Categories Included:</span>
+                    <span className="text-slate-500 dark:text-neutral-400">{t('settings.catIncluded')}</span>
                     <span className="font-bold text-slate-900 dark:text-white">{importPreview.categoryCount}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                    <span className="text-slate-500 dark:text-neutral-400">Recurring Bills:</span>
+                    <span className="text-slate-500 dark:text-neutral-400">{t('settings.recurringBills')}</span>
                     <span className="font-bold text-slate-900 dark:text-white">{importPreview.recurringCount}</span>
                   </div>
                 </>
@@ -756,7 +835,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             {importPreview.sampleItems.length > 0 && (
               <div className="space-y-1 pt-1">
                 <span className="text-[10px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block">
-                  Sample Entries:
+                  {t('settings.sampleEntries')}
                 </span>
                 <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200/80 dark:border-white/5 space-y-1 text-[11px] text-slate-600 dark:text-neutral-400">
                   {importPreview.sampleItems.map((s, idx) => (
@@ -769,7 +848,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             {/* Choice: Merge vs Replace */}
             <div className="pt-3 space-y-2">
               <p className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
-                Choose how you would like to apply this import:
+                {t('settings.chooseImportMode')}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -777,16 +856,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   onClick={() => handleApplyImportMode('merge')}
                   className="p-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold active:scale-95 transition-all text-center shadow-lg shadow-indigo-600/25"
                 >
-                  <div className="font-extrabold">Merge</div>
-                  <div className="text-[10px] font-normal opacity-80">Smart deduplicate</div>
+                  <div className="font-extrabold">{t('settings.mergeModeTitle')}</div>
+                  <div className="text-[10px] font-normal opacity-80">{t('settings.mergeModeDesc')}</div>
                 </button>
                 <button
                   disabled={isProcessingImport}
                   onClick={() => handleApplyImportMode('replace')}
                   className="p-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold active:scale-95 transition-all text-center shadow-lg shadow-rose-600/25"
                 >
-                  <div className="font-extrabold">Replace</div>
-                  <div className="text-[10px] font-normal opacity-80">Wipe and restore</div>
+                  <div className="font-extrabold">{t('settings.replaceModeTitle')}</div>
+                  <div className="text-[10px] font-normal opacity-80">{t('settings.replaceModeDesc')}</div>
                 </button>
               </div>
             </div>
@@ -795,7 +874,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               onClick={() => setImportPreview(null)}
               className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>

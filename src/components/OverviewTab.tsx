@@ -16,11 +16,13 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { format, addMonths, subMonths, isSameMonth, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import type { Transaction, Category, RecurringPayment, PlanSettings } from '../types';
 import {
   calculateMonthSummary,
   formatCurrency,
   getDaysUntilDue,
+  getMonthlyMultiplier,
   markBillAsPaid,
   triggerHaptic
 } from '../lib/calculations';
@@ -51,6 +53,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onRefresh,
   onNavigateToTab
 }) => {
+  const { t, i18n } = useTranslation();
   const [billsTimeframe, setBillsTimeframe] = useState<'7' | '30'>('7');
 
   const summary = calculateMonthSummary(transactions, categories, recurring, settings, currentDate);
@@ -110,6 +113,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const isEssentialsOver = summary.essentials.spent > summary.essentials.budgetCap;
   const essentialsOverAmount = Math.max(0, summary.essentials.spent - summary.essentials.budgetCap);
 
+  const monthYearLabel = format(currentDate, 'MMMM yyyy');
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Period Switcher */}
@@ -118,17 +123,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <button
             onClick={handlePrevMonth}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all"
-            aria-label="Previous Month"
+            aria-label={t('overview.previousMonth')}
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="px-3 text-sm font-bold tracking-tight text-slate-900 dark:text-white min-w-32 text-center">
-            {format(currentDate, 'MMMM yyyy')}
+          <span className="px-3 text-sm font-bold tracking-tight text-slate-900 dark:text-white min-w-32 text-center capitalize">
+            {monthYearLabel}
           </span>
           <button
             onClick={handleNextMonth}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition-all"
-            aria-label="Next Month"
+            aria-label={t('overview.nextMonth')}
           >
             <ChevronRight size={18} />
           </button>
@@ -139,7 +144,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             onClick={handleResetToToday}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 dark:hover:bg-indigo-500/30 active:scale-95 transition-all"
           >
-            Current Month
+            {t('overview.currentMonth')}
           </button>
         )}
       </div>
@@ -152,7 +157,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 tracking-wider uppercase">
-              Net Cash Flow
+              {t('overview.netCashFlow')}
             </span>
             <div
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
@@ -163,8 +168,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             >
               <TrendingUp size={12} className={summary.netSavings < 0 ? 'rotate-180' : ''} />
               {summary.netSavings >= 0
-                ? `+${summary.savingsRate.toFixed(1)}% Saved`
-                : `${summary.savingsRate.toFixed(1)}% Deficit`}
+                ? t('overview.savedPct', { rate: summary.savingsRate.toFixed(1) })
+                : t('overview.deficitPct', { rate: summary.savingsRate.toFixed(1) })}
             </div>
           </div>
 
@@ -176,14 +181,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             >
               {formatCurrency(summary.netSavings)}
             </span>
-            <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">this period</span>
+            <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">{t('overview.thisPeriod')}</span>
           </div>
 
           {/* Income-to-Spend Visual Meter */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-neutral-400">
-              <span>Spend Ratio</span>
-              <span className="font-medium text-slate-700 dark:text-neutral-300">{spendRatio.toFixed(0)}% of income</span>
+              <span>{t('overview.spendRatio')}</span>
+              <span className="font-medium text-slate-700 dark:text-neutral-300">
+                {t('overview.ofIncome', { ratio: spendRatio.toFixed(0) })}
+              </span>
             </div>
             <div className="h-2 w-full bg-slate-200/80 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/5">
               <div
@@ -203,7 +210,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
-                <ArrowUpRight size={14} /> Total Income
+                <ArrowUpRight size={14} /> {t('overview.totalIncome')}
               </div>
               <div className="text-lg font-bold font-mono text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.incomeTotal)}
@@ -212,7 +219,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
             <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
               <div className="flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">
-                <ArrowDownRight size={14} /> Total Spent
+                <ArrowDownRight size={14} /> {t('overview.totalSpent')}
               </div>
               <div className="text-lg font-bold font-mono text-slate-900 dark:text-white tracking-tight">
                 {formatCurrency(summary.expenseTotal)}
@@ -228,11 +235,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
               <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400" />
-              Lifestyle & Wealth Engine ({settings.selectedFramework})
+              {t('overview.lifestyleEngine')} ({settings.selectedFramework})
             </h3>
             <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-              Income base: {formatCurrency(summary.effectiveIncomeBase)}{' '}
-              {settings.useManualSalary ? '(Manual Target)' : '(Actual Inflow)'}
+              {t('overview.incomeBase')} {formatCurrency(summary.effectiveIncomeBase)}{' '}
+              {settings.useManualSalary ? t('overview.manualTarget') : t('overview.actualInflow')}
             </p>
           </div>
           <button
@@ -242,7 +249,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             }}
             className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
           >
-            Adjust
+            {t('overview.adjust')}
           </button>
         </div>
 
@@ -266,9 +273,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             />
           </div>
           <div className="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-neutral-400 px-1">
-            <span className="text-blue-600 dark:text-blue-400">Essentials ({essentialsCapPct.toFixed(0)}%)</span>
-            <span className="text-purple-600 dark:text-purple-400">Self-Care ({selfCareCapPct.toFixed(0)}%)</span>
-            <span className="text-teal-600 dark:text-teal-400">Wealth ({investmentsCapPct.toFixed(0)}%)</span>
+            <span className="text-blue-600 dark:text-blue-400">{t('overview.essentialsTitle')} ({essentialsCapPct.toFixed(0)}%)</span>
+            <span className="text-purple-600 dark:text-purple-400">{t('overview.selfCareTitle')} ({selfCareCapPct.toFixed(0)}%)</span>
+            <span className="text-teal-600 dark:text-teal-400">{t('overview.investmentsTitle')} ({investmentsCapPct.toFixed(0)}%)</span>
           </div>
         </div>
 
@@ -284,12 +291,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                <Heart size={14} /> Self-Care & Wants
+                <Heart size={14} /> {t('overview.selfCareTitle')}
               </span>
               <div className="flex items-center gap-1.5">
                 {isSelfCareOver && (
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                    Over Limit
+                    {t('overview.overLimit')}
                   </span>
                 )}
                 <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
@@ -313,12 +320,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 }`}
               >
                 {isSelfCareOver
-                  ? `${formatCurrency(selfCareOverAmount)} over monthly cap`
-                  : 'buffer remaining'}
+                  ? t('overview.overMonthlyCap', { amount: formatCurrency(selfCareOverAmount) })
+                  : t('overview.bufferRemaining')}
               </div>
             </div>
             <div className="pt-1 border-t border-purple-500/15 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-neutral-400">Daily Safe Pace:</span>
+              <span className="text-slate-500 dark:text-neutral-400">{t('overview.dailySafeToSpend')}:</span>
               <span
                 className={`font-bold font-mono ${
                   isSelfCareOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
@@ -333,7 +340,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
-                <TrendingUp size={14} /> Wealth / DCA
+                <TrendingUp size={14} /> {t('overview.investmentsTitle')}
               </span>
               <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
                 {summary.investments.percentage}%
@@ -344,11 +351,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 {formatCurrency(summary.investments.spent)}
               </div>
               <div className="text-[11px] text-teal-700/80 dark:text-teal-300/80">
-                funded of {formatCurrency(summary.investments.budgetCap)}
+                {t('overview.spentOf', { total: formatCurrency(summary.investments.budgetCap) })}
               </div>
             </div>
             <div className="pt-1 border-t border-teal-500/15 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-neutral-400">Progress:</span>
+              <span className="text-slate-500 dark:text-neutral-400">{t('overview.funded')}:</span>
               <span className="font-bold font-mono text-teal-700 dark:text-teal-300">
                 {(summary.investments.fundedProgressPct || 0).toFixed(0)}%
               </span>
@@ -365,12 +372,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                <ShieldCheck size={14} /> Essentials
+                <ShieldCheck size={14} /> {t('overview.essentialsTitle')}
               </span>
               <div className="flex items-center gap-1.5">
                 {isEssentialsOver && (
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                    Over Cap
+                    {t('overview.overCap')}
                   </span>
                 )}
                 <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
@@ -394,12 +401,17 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 }`}
               >
                 {isEssentialsOver
-                  ? `spent of ${formatCurrency(summary.essentials.budgetCap)} (+${formatCurrency(essentialsOverAmount)} over)`
-                  : `spent of ${formatCurrency(summary.essentials.budgetCap)}`}
+                  ? t('overview.spentOfOver', {
+                      total: formatCurrency(summary.essentials.budgetCap),
+                      over: formatCurrency(essentialsOverAmount)
+                    })
+                  : t('overview.spentOf', {
+                      total: formatCurrency(summary.essentials.budgetCap)
+                    })}
               </div>
             </div>
             <div className="pt-1 border-t border-blue-500/15 flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-neutral-400">Committed Bills:</span>
+              <span className="text-slate-500 dark:text-neutral-400">{t('overview.committedBills')}:</span>
               <span className="font-bold font-mono text-slate-900 dark:text-white">
                 {formatCurrency(summary.essentials.committedBills || 0)}/mo
               </span>
@@ -413,7 +425,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-amber-500 dark:text-amber-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Upcoming Commitments</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('overview.upcomingBills')}
+            </h3>
           </div>
           <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200/80 dark:border-white/5">
             <button
@@ -427,7 +441,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              7 Days
+              {t('overview.next7Days')}
             </button>
             <button
               onClick={() => {
@@ -440,99 +454,176 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              30 Days
+              {t('overview.next30Days')}
             </button>
           </div>
         </div>
 
         {upcomingBills.length === 0 ? (
           <div className="py-6 text-center text-xs text-slate-500 dark:text-neutral-400 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/70 dark:border-white/5">
-            No bills due within {billsTimeframe} days. You're completely clear!
+            {t('overview.noUpcomingBills')}
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {upcomingBills.map(bill => {
               const cat = categories.find(c => c.id === bill.categoryId);
               const isOverdue = bill.daysLeft < 0;
               const isToday = bill.daysLeft === 0;
               const isTomorrow = bill.daysLeft === 1;
-              const isReminderDue = bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
+              const isReminderDue =
+                bill.isActive && bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
 
-              let tagText = `In ${bill.daysLeft} days`;
+              let tagText = t('overview.dueInDays', { days: bill.daysLeft });
               let tagStyle =
                 'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
               if (isOverdue) {
-                tagText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
-                tagStyle = 'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40';
-              } else if (isToday) {
-                tagText = 'Due Today';
+                tagText = t('overview.overdueDays', { days: Math.abs(bill.daysLeft) });
                 tagStyle =
-                  'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 animate-pulse';
+                  'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30';
+              } else if (isToday) {
+                tagText = t('overview.dueToday');
+                tagStyle =
+                  'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse';
               } else if (isTomorrow) {
-                tagText = 'Tomorrow';
-                tagStyle = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
+                tagText = t('overview.dueTomorrow');
+                tagStyle =
+                  'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
               } else if (isReminderDue) {
-                tagStyle = 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
+                tagStyle =
+                  'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40';
               }
+
+              const monthlyCost = bill.amount * getMonthlyMultiplier(bill.billingCycle);
 
               return (
                 <div
                   key={bill.id}
-                  className={`flex items-center justify-between p-3 rounded-2xl border transition-colors ${
-                    isReminderDue
-                      ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/40 hover:border-amber-500/60'
-                      : 'bg-slate-50 dark:bg-white/5 border-slate-200/70 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                  onClick={() => {
+                    triggerHaptic(10);
+                    onNavigateToTab('bills');
+                  }}
+                  className={`group flex flex-col sm:flex-row sm:items-center sm:justify-between p-3.5 rounded-2xl bg-white dark:bg-neutral-900/80 border shadow-2xs dark:shadow-none transition-all cursor-pointer gap-2.5 sm:gap-3 ${
+                    !bill.isActive
+                      ? 'border-slate-200/60 dark:border-white/5 opacity-50 bg-slate-100 dark:bg-neutral-950'
+                      : isReminderDue
+                      ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 hover:border-amber-500/60'
+                      : 'border-slate-200/80 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: `${cat?.colorHex || '#8B5CF6'}25`,
-                        color: cat?.colorHex || '#8B5CF6'
-                      }}
-                    >
-                      <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
+                  {/* Top row on mobile / Left group on sm+ */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: `${cat?.colorHex || '#8b5cf6'}25`,
+                          color: cat?.colorHex || '#8b5cf6'
+                        }}
+                      >
+                        <CategoryIcon iconName={cat?.iconName || 'repeat'} size={18} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                            {bill.title}
+                          </span>
+                          {bill.isAutoPay && (
+                            <span title={t('overview.autoDebit')}>
+                              <Zap size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                            </span>
+                          )}
+                          {bill.reminderEnabled && (
+                            <span
+                              title={
+                                isReminderDue
+                                  ? `Reminder Alert: Due within ${bill.reminderDaysBefore}d`
+                                  : `Reminder ${bill.reminderDaysBefore}d before`
+                              }
+                              className={`inline-flex items-center gap-1 ${
+                                isReminderDue
+                                  ? 'px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300'
+                                  : ''
+                              }`}
+                            >
+                              <Bell
+                                size={12}
+                                className={`text-amber-500 dark:text-amber-400 shrink-0 ${
+                                  isReminderDue ? 'animate-bounce' : ''
+                                }`}
+                              />
+                              {isReminderDue && <span>Reminder</span>}
+                            </span>
+                          )}
+                          {!bill.isActive && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-neutral-400">
+                              {t('common.paused')}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Desktop: badge and cycle placed inline under title */}
+                        <div className="hidden sm:flex items-center gap-2 mt-0.5">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${tagStyle}`}>
+                            {tagText}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize">
+                            {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        {bill.title}
-                        {bill.isAutoPay && (
-                          <span title="Auto-Debit Enabled">
-                            <Zap size={12} className="text-indigo-600 dark:text-indigo-400" />
-                          </span>
-                        )}
-                        {isReminderDue && (
-                          <span
-                            title={`Reminder Alert (${bill.reminderDaysBefore}d before)`}
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-700 dark:text-amber-300"
-                          >
-                            <Bell size={11} className="text-amber-500 dark:text-amber-400" />
-                            Reminder
-                          </span>
-                        )}
+
+                    {/* Mobile: Amount and monthly equivalent on the right of the top row */}
+                    <div className="text-right sm:hidden shrink-0">
+                      <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
+                        {formatCurrency(bill.amount, bill.currencyCode)}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tagStyle}`}>
-                          {tagText}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-neutral-400">
-                          {format(parseISO(bill.nextDueDate), 'MMM d')}
-                        </span>
-                      </div>
+                      {bill.billingCycle !== 'monthly' && (
+                        <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
+                          ~{formatCurrency(monthlyCost)}/mo
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
-                      {formatCurrency(bill.amount, bill.currencyCode)}
-                    </span>
-                    <button
-                      onClick={() => handleMarkPaid(bill)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
-                    >
-                      <CheckCircle2 size={13} /> Paid
-                    </button>
+                  {/* Bottom row on mobile (Due status left, Actions right) / Controls on sm+ */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5 sm:border-0 sm:pt-0 sm:gap-3 shrink-0">
+                    {/* Mobile: Due status & billing cycle */}
+                    <div className="flex sm:hidden items-center gap-2 min-w-0">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${tagStyle}`}>
+                        {tagText}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-neutral-400 capitalize truncate">
+                        {bill.billingCycle} • {format(parseISO(bill.nextDueDate), 'MMM d')}
+                      </span>
+                    </div>
+
+                    {/* Action buttons + Desktop Amount */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                      <div className="hidden sm:block text-right">
+                        <div className="text-sm font-extrabold font-mono text-slate-900 dark:text-white">
+                          {formatCurrency(bill.amount, bill.currencyCode)}
+                        </div>
+                        {bill.billingCycle !== 'monthly' && (
+                          <div className="text-[10px] font-mono text-slate-500 dark:text-neutral-400">
+                            ~{formatCurrency(monthlyCost)}/mo
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleMarkPaid(bill);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+                        title="Mark Paid & Advance Due Date"
+                      >
+                        <CheckCircle2 size={13} /> {t('overview.paid')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -546,16 +637,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Wallet size={16} className="text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Spending Breakdown</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{t('overview.spendingByCategory')}</h3>
           </div>
           <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
-            Total {formatCurrency(summary.expenseTotal)}
+            {t('overview.totalSpent')}: {formatCurrency(summary.expenseTotal)}
           </span>
         </div>
 
         {summary.expenseTotal === 0 ? (
           <div className="py-8 text-center text-xs text-slate-500 dark:text-neutral-400 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/70 dark:border-white/5">
-            No expenses logged for {format(currentDate, 'MMMM yyyy')}.
+            {t('overview.noExpensesMonth')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -575,7 +666,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     itemStyle={{
                       color: theme === 'light' ? '#0f172a' : '#fff'
                     }}
-                    formatter={(val: any) => [formatCurrency(Number(val)), 'Spent']}
+                    formatter={(val: any) => [formatCurrency(Number(val)), t('overview.totalSpent')]}
                   />
                   <Pie
                     data={donutData}
@@ -593,7 +684,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               {/* Centered Metric in Donut Hole */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-                  Total Spent
+                  {t('overview.totalSpent')}
                 </span>
                 <span className="text-lg font-extrabold font-mono text-slate-900 dark:text-white">
                   {formatCurrency(summary.expenseTotal)}
@@ -632,12 +723,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     </div>
                   </div>
 
-                  {/* Micro-percentage bar */}
+                  {/* Percentage bar */}
                   <div className="h-1.5 w-full bg-slate-200/80 dark:bg-white/5 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
-                        width: `${item.percentage}%`,
+                        width: `${Math.min(100, Math.max(0, item.percentage))}%`,
                         backgroundColor: item.category.colorHex || '#6366f1'
                       }}
                     />

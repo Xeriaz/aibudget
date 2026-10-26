@@ -6,6 +6,7 @@ import {
   Sliders,
   Plus
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { db, initializeDatabase, DEFAULT_SETTINGS } from './db/db';
 import type { Transaction, Category, RecurringPayment, PlanSettings } from './types';
 import { OverviewTab } from './components/OverviewTab';
@@ -19,6 +20,7 @@ import { triggerHaptic } from './lib/calculations';
 type ActiveTab = 'overview' | 'ledger' | 'bills' | 'settings';
 
 export default function App() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -132,7 +134,7 @@ export default function App() {
         </div>
         <div className="text-center">
           <div className="text-lg font-bold tracking-tight">aiBudget</div>
-          <div className="text-xs text-slate-500 dark:text-neutral-500">Preparing local offline storage...</div>
+          <div className="text-xs text-slate-500 dark:text-neutral-500">{t('common.loadingStorage')}</div>
         </div>
       </div>
     );
@@ -163,7 +165,7 @@ export default function App() {
               onClick={handleOpenAddTx}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
             >
-              <Plus size={14} /> Log
+              <Plus size={14} /> {t('common.log')}
             </button>
           </div>
         </div>
@@ -240,7 +242,7 @@ export default function App() {
             >
               <Sparkles size={19} />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight">Overview</span>
+            <span className="text-[10px] mt-0.5 tracking-tight">{t('nav.overview')}</span>
           </button>
 
           {/* Tab 2: Ledger */}
@@ -262,7 +264,7 @@ export default function App() {
             >
               <Receipt size={19} />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight">Ledger</span>
+            <span className="text-[10px] mt-0.5 tracking-tight">{t('nav.ledger')}</span>
           </button>
 
           {/* Center Floating Log Action */}
@@ -270,7 +272,7 @@ export default function App() {
             <button
               onClick={handleOpenAddTx}
               className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-indigo-400 text-white shadow-xl shadow-indigo-600/35 flex items-center justify-center active:scale-90 transition-all border-2 border-slate-50 dark:border-[#09090b]"
-              title="Log Transaction"
+              title={t('common.logTransaction')}
             >
               <Plus size={24} strokeWidth={2.5} />
             </button>
@@ -295,7 +297,7 @@ export default function App() {
             >
               <CalendarClock size={19} />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight">Bills</span>
+            <span className="text-[10px] mt-0.5 tracking-tight">{t('nav.bills')}</span>
           </button>
 
           {/* Tab 4: Settings */}
@@ -317,7 +319,7 @@ export default function App() {
             >
               <Sliders size={19} />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight">Settings</span>
+            <span className="text-[10px] mt-0.5 tracking-tight">{t('nav.settings')}</span>
           </button>
         </div>
       </nav>

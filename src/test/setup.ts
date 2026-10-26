@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { db } from '../db/db';
+import i18n from '../i18n';
 
 // Stub ResizeObserver for Recharts ResponsiveContainer
 class ResizeObserverStub {
@@ -23,6 +24,7 @@ beforeEach(async () => {
     db.settings.clear()
   ]);
   localStorage.clear();
+  await i18n.changeLanguage('en');
 
   // Stub browser APIs commonly used across flows
   if (typeof window !== 'undefined') {

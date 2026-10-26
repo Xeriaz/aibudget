@@ -12,6 +12,7 @@ import {
   PlayCircle
 } from 'lucide-react';
 import { format, parseISO, isThisMonth } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import type { RecurringPayment, Category } from '../types';
 import {
   formatCurrency,
@@ -38,6 +39,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
   onSelectToEdit,
   onRefresh
 }) => {
+  const { t } = useTranslation();
   const [filterActiveOnly, setFilterActiveOnly] = useState(true);
 
   const categoryMap = useMemo(() => {
@@ -120,19 +122,19 @@ export const BillsTab: React.FC<BillsTabProps> = ({
     const isReminderDue =
       bill.isActive && bill.reminderEnabled && bill.daysLeft <= bill.reminderDaysBefore;
 
-    let badgeText = `In ${bill.daysLeft}d`;
+    let badgeText = t('overview.dueInDays', { days: bill.daysLeft });
     let badgeClass =
       'bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-neutral-300 border-slate-300/80 dark:border-white/10';
     if (isOverdue) {
-      badgeText = `Overdue (${Math.abs(bill.daysLeft)}d)`;
+      badgeText = t('overview.overdueDays', { days: Math.abs(bill.daysLeft) });
       badgeClass =
         'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30';
     } else if (isToday) {
-      badgeText = 'Due Today';
+      badgeText = t('overview.dueToday');
       badgeClass =
         'bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse';
     } else if (isTomorrow) {
-      badgeText = 'Tomorrow';
+      badgeText = t('overview.dueTomorrow');
       badgeClass =
         'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
     } else if (isReminderDue) {
@@ -176,7 +178,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                   {bill.title}
                 </span>
                 {bill.isAutoPay && (
-                  <span title="Auto-debit">
+                  <span title={t('bills.autoDebit')}>
                     <Zap size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                   </span>
                 )}
@@ -204,7 +206,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
                 )}
                 {!bill.isActive && (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-neutral-400">
-                    Paused
+                    {t('common.paused')}
                   </span>
                 )}
               </div>
@@ -263,7 +265,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               type="button"
               onClick={e => handleToggleActive(e, bill)}
               className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-300 active:scale-95 transition-all"
-              title={bill.isActive ? 'Pause Bill' : 'Resume Bill'}
+              title={bill.isActive ? t('bills.pauseBill') : t('bills.resumeBill')}
               aria-label={bill.isActive ? `Pause ${bill.title}` : `Resume ${bill.title}`}
             >
               {bill.isActive ? <PauseCircle size={15} /> : <PlayCircle size={15} />}
@@ -275,7 +277,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
               className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
               title="Mark Paid & Advance Due Date"
             >
-              <CheckCircle2 size={13} /> Paid
+              <CheckCircle2 size={13} /> {t('overview.paid')}
             </button>
           </div>
         </div>
@@ -288,7 +290,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
       {/* Header action */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Calendar size={18} className="text-indigo-600 dark:text-indigo-400" /> Subscriptions & Recurring Bills
+          <Calendar size={18} className="text-indigo-600 dark:text-indigo-400" /> {t('bills.title')}
         </h2>
         <button
           onClick={() => {
@@ -297,7 +299,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           }}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
         >
-          <Plus size={14} /> Add Bill
+          <Plus size={14} /> {t('bills.addBill')}
         </button>
       </div>
 
@@ -310,19 +312,19 @@ export const BillsTab: React.FC<BillsTabProps> = ({
             <Flame size={14} className="text-orange-500 dark:text-orange-400" /> Committed Fixed Burn
           </span>
           <span className="text-xs text-slate-500 dark:text-neutral-400 font-medium">
-            {activeCount} active commitment{activeCount !== 1 ? 's' : ''}
+            {activeCount === 1 ? t('bills.activeCommitments', { count: activeCount }) : t('bills.activeCommitments_plural', { count: activeCount })}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-1">
           <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
-            <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">Monthly Burn</span>
+            <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">{t('bills.monthlyImpact')}</span>
             <span className="text-xl sm:text-2xl font-extrabold font-mono text-slate-900 dark:text-white">
               {formatCurrency(monthlyBurn)}
             </span>
           </div>
           <div className="p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/5 shadow-2xs dark:shadow-none">
-            <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">Annual Commitment</span>
+            <span className="text-xs text-slate-500 dark:text-neutral-400 block mb-1">{t('bills.annualImpact')}</span>
             <span className="text-xl sm:text-2xl font-extrabold font-mono text-indigo-600 dark:text-indigo-300">
               {formatCurrency(annualCommitment)}
             </span>
@@ -342,14 +344,14 @@ export const BillsTab: React.FC<BillsTabProps> = ({
           }}
           className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium"
         >
-          {filterActiveOnly ? 'Show All (incl. Paused)' : 'Show Active Only'}
+          {filterActiveOnly ? 'Show All (incl. Paused)' : t('bills.activeOnly')}
         </button>
       </div>
 
       {/* Section 1: Due Within 7 Days */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 px-1 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-          <Clock size={14} /> Due Within 7 Days ({dueWithin7Days.length})
+          <Clock size={14} /> {t('bills.dueInNext7Days')} ({dueWithin7Days.length})
         </div>
         {dueWithin7Days.length === 0 ? (
           <div className="py-4 px-4 text-xs text-slate-500 dark:text-neutral-500 bg-white/70 dark:bg-neutral-900/40 rounded-2xl border border-slate-200/70 dark:border-white/5">
@@ -365,7 +367,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
       {/* Section 2: Due This Month */}
       <div className="space-y-2 pt-2">
         <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-          <Calendar size={14} /> Due Later This Month ({dueThisMonth.length})
+          <Calendar size={14} /> {t('bills.dueLaterThisMonth')} ({dueThisMonth.length})
         </div>
         {dueThisMonth.length === 0 ? (
           <div className="py-4 px-4 text-xs text-slate-500 dark:text-neutral-500 bg-white/70 dark:bg-neutral-900/40 rounded-2xl border border-slate-200/70 dark:border-white/5">
@@ -381,7 +383,7 @@ export const BillsTab: React.FC<BillsTabProps> = ({
       {/* Section 3: Later Commitments */}
       <div className="space-y-2 pt-2">
         <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-          <Repeat size={14} /> Future & Long-Term Cycles ({laterCommitments.length})
+          <Repeat size={14} /> {t('bills.upcomingLater')} ({laterCommitments.length})
         </div>
         {laterCommitments.length === 0 ? (
           <div className="py-4 px-4 text-xs text-slate-500 dark:text-neutral-500 bg-white/70 dark:bg-neutral-900/40 rounded-2xl border border-slate-200/70 dark:border-white/5">

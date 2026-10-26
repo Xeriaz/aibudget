@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Check, Trash2, Bell, Zap, PauseCircle, PlayCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import type { RecurringPayment, Category, BillingCycle } from '../types';
 import { db } from '../db/db';
 import { triggerHaptic } from '../lib/calculations';
@@ -20,6 +21,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
   categories,
   onSaved
 }) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [amountStr, setAmountStr] = useState('');
@@ -75,11 +77,11 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
     e.preventDefault();
     const parsedAmount = Math.abs(parseFloat(amountStr));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid amount');
+      alert(t('recurringModal.enterValidAmount'));
       return;
     }
     if (!title.trim()) {
-      alert('Please enter a title for the recurring bill');
+      alert(t('recurringModal.enterTitle'));
       return;
     }
 
@@ -127,7 +129,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
 
   const handleDelete = async () => {
     if (!recurringToEdit) return;
-    if (confirm('Cancel and remove this recurring bill?')) {
+    if (confirm(t('recurringModal.confirmDelete'))) {
       triggerHaptic(30);
       await db.recurringPayments.delete(recurringToEdit.id);
       onSaved();
@@ -149,7 +151,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
       >
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
           <h2 id="recurring-modal-title" className="text-lg font-bold">
-            {recurringToEdit ? 'Edit Recurring Bill' : 'Add Recurring Commitment'}
+            {recurringToEdit ? t('recurringModal.editRecurring') : t('recurringModal.newRecurring')}
           </h2>
           <button
             type="button"
@@ -168,7 +170,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           {/* Amount input */}
           <div className="text-center py-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-              Billing Amount
+              {t('recurringModal.amount')}
             </span>
             <div className="inline-flex items-center justify-center gap-1 max-w-full">
               <span className="text-3xl font-light text-slate-400 dark:text-neutral-400 shrink-0">€</span>
@@ -188,26 +190,26 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-                Bill / Subscription Name
+                {t('recurringModal.titleService')}
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Netflix, Gym, Rent, Internet"
+                placeholder={t('recurringModal.titlePlaceholder')}
                 className="w-full max-w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
 
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-                Note / Memo (Optional)
+                {t('recurringModal.note')}
               </label>
               <input
                 type="text"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                placeholder="Plan tier, account number, or notes"
+                placeholder={t('recurringModal.notePlaceholder')}
                 className="w-full max-w-full px-4 py-3 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -216,7 +218,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           {/* Billing Cycle Selector */}
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">
-              Cadence / Cycle
+              {t('recurringModal.billingCycle')}
             </label>
             <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {(['weekly', 'monthly', 'quarterly', 'yearly'] as BillingCycle[]).map(cycle => (
@@ -233,7 +235,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                       : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-neutral-400 hover:border-slate-300 dark:hover:border-white/20'
                   }`}
                 >
-                  {cycle}
+                  {t(`recurringModal.${cycle}` as any)}
                 </button>
               ))}
             </div>
@@ -243,7 +245,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="min-w-0">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-                Next Due Date
+                {t('recurringModal.nextDueDate')}
               </label>
               <div className="relative">
                 <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-neutral-500 pointer-events-none" />
@@ -258,7 +260,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
 
             <div className="min-w-0">
               <label className="text-xs font-semibold text-slate-500 dark:text-neutral-400 uppercase tracking-wider block mb-1">
-                Category
+                {t('recurringModal.category')}
               </label>
               <select
                 value={categoryId}
@@ -290,10 +292,10 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                    {isActive ? 'Bill Active' : 'Bill Paused'}
+                    {isActive ? t('common.active') : t('common.paused')}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">
-                    {isActive ? 'Included in monthly burn & reminders' : 'Paused commitment (excluded from burn)'}
+                    {t('recurringModal.activeSubscription')}
                   </div>
                 </div>
               </div>
@@ -312,7 +314,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                     : 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
                 }`}
               >
-                {isActive ? 'Active' : 'Paused'}
+                {isActive ? t('common.active') : t('common.paused')}
               </button>
             </div>
 
@@ -322,8 +324,8 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                   <Zap size={16} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">Auto-Debit Active</div>
-                  <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">Payment debits automatically</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{t('recurringModal.autoDebit')}</div>
+                  <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">{t('recurringModal.autoDebitDesc')}</div>
                 </div>
               </div>
               <input
@@ -344,8 +346,8 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
                     <Bell size={16} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">Reminder Alert</div>
-                    <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">Advance notification badge</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{t('bills.reminder')}</div>
+                    <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">{t('recurringModal.reminder')}</div>
                   </div>
                 </div>
                 <input
@@ -402,7 +404,7 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
               className="flex-1 py-3.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Check size={18} />
-              {recurringToEdit ? 'Save Bill' : 'Create Recurring Bill'}
+              {recurringToEdit ? t('recurringModal.saveBill') : t('recurringModal.createRecurringBill')}
             </button>
           </div>
         </form>
