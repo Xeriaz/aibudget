@@ -278,6 +278,36 @@ export const lt = {
     "pauseBill": "Sustabdyti sąskaitą",
     "resumeBill": "Atnaujinti sąskaitą"
   },
+  "months": {
+    "short": {
+      "0": "Saus",
+      "1": "Vas",
+      "2": "Kov",
+      "3": "Bal",
+      "4": "Geg",
+      "5": "Birž",
+      "6": "Liep",
+      "7": "Rugp",
+      "8": "Rugs",
+      "9": "Spal",
+      "10": "Lapkr",
+      "11": "Gruod"
+    },
+    "full": {
+      "0": "Sausis",
+      "1": "Vasaris",
+      "2": "Kovas",
+      "3": "Balandis",
+      "4": "Gegužė",
+      "5": "Birželis",
+      "6": "Liepa",
+      "7": "Rugpjūtis",
+      "8": "Rugsėjis",
+      "9": "Spalis",
+      "10": "Lapkritis",
+      "11": "Gruodis"
+    }
+  },
   "categories": {
     "cat-groceries": "Maistas ir produktai",
     "cat-dining": "Kavinės ir restoranai",

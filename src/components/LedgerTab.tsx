@@ -194,6 +194,19 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
     }
   };
 
+  const formatMonthLabel = (monthKey: string) => {
+    if (!monthKey || monthKey === 'all') return t('ledger.allTime');
+    const [yr, mo] = monthKey.split('-');
+    const moIdx = parseInt(mo, 10) - 1;
+    if (moIdx >= 0 && moIdx < 12) {
+      const full = t(`months.full.${moIdx}`, { defaultValue: '' });
+      if (full) {
+        return i18n.language?.startsWith('lt') ? `${yr} m. ${full.toLowerCase()}` : `${full} ${yr}`;
+      }
+    }
+    return monthKey;
+  };
+
   const formatDayHeader = (dateStr: string) => {
     try {
       const d = parseISO(dateStr);
@@ -339,6 +352,9 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
             const isDimmed = selectedMonth !== 'all' && !isSelected;
             const maxVal = yearlySummary.maxMonthlyValue;
 
+            const shortLabel = t(`months.short.${m.monthIndex}`, { defaultValue: m.monthLabel });
+            const fullLabel = t(`months.full.${m.monthIndex}`, { defaultValue: m.monthLabel });
+
             const incomePct =
               maxVal > 0 && m.income > 0 ? Math.max(6, Math.round((m.income / maxVal) * 100)) : 0;
             const expensePct =
@@ -349,9 +365,9 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                 key={m.monthKey}
                 type="button"
                 onClick={() => handleToggleMonthBar(m.monthKey)}
-                aria-label={`${m.monthLabel} ${chartYear}: ${t('ledger.income')} ${formatCurrency(m.income)}, ${t('ledger.expense')} ${formatCurrency(m.expense)}`}
+                aria-label={`${shortLabel} ${chartYear}: ${t('ledger.income')} ${formatCurrency(m.income)}, ${t('ledger.expense')} ${formatCurrency(m.expense)}`}
                 aria-pressed={isSelected}
-                title={`${m.monthLabel} ${chartYear}\n${t('ledger.income')}: ${formatCurrency(m.income)}\n${t('ledger.expense')}: ${formatCurrency(m.expense)}\n${t('ledger.net')}: ${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}`}
+                title={`${fullLabel} ${chartYear}\n${t('ledger.income')}: ${formatCurrency(m.income)}\n${t('ledger.expense')}: ${formatCurrency(m.expense)}\n${t('ledger.net')}: ${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}`}
                 className={`group flex flex-col items-center justify-end rounded-xl py-1.5 px-0.5 transition-all focus:outline-none ${
                   isSelected
                     ? 'bg-indigo-500/15 dark:bg-indigo-500/20 ring-1 ring-indigo-500/50'
@@ -387,13 +403,13 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
                 </div>
 
                 <span
-                  className={`mt-1.5 text-[10px] font-mono leading-none tracking-tight ${
+                  className={`mt-1.5 text-[9px] sm:text-[10px] font-mono leading-none tracking-tight ${
                     isSelected
                       ? 'font-extrabold text-indigo-600 dark:text-indigo-300'
                       : 'font-medium text-slate-500 dark:text-neutral-400 group-hover:text-slate-900 dark:group-hover:text-white'
                   }`}
                 >
-                  {m.monthLabel}
+                  {shortLabel}
                 </span>
               </button>
             );
@@ -525,7 +541,7 @@ export const LedgerTab: React.FC<LedgerTabProps> = ({
               .reverse()
               .map(m => (
                 <option key={m} value={m}>
-                  {m}
+                  {formatMonthLabel(m)}
                 </option>
               ))}
           </select>

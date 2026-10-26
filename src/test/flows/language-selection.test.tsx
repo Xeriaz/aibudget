@@ -65,6 +65,13 @@ describe('Language Selection (English default vs Lithuanian)', () => {
     expect(screen.getByText('Išlaidos sau')).toBeInTheDocument();
     expect(screen.getByText('Būtinosios išlaidos')).toBeInTheDocument();
 
+    // Switch to Ledger tab and verify Lithuanian diagram months
+    await user.click(screen.getByRole('button', { name: /^žurnalas$/i }));
+    expect(await screen.findByText('Saus')).toBeInTheDocument();
+    expect(screen.getByText('Vas')).toBeInTheDocument();
+    expect(screen.getByText('Kov')).toBeInTheDocument();
+    expect(screen.getByText('Gruod')).toBeInTheDocument();
+
     // Return to Settings to switch back
     await user.click(screen.getByRole('button', { name: /^nustatymai$/i }));
 
