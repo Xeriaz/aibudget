@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { addDays, format } from 'date-fns';
+import { addDays, addMonths, format } from 'date-fns';
 import App from '../../App';
 import { db, initializeDatabase } from '../../db/db';
 import { makeRecurringPayment } from '../factories';
@@ -163,5 +163,68 @@ describe('Flow 4: Recurring Bills & Mark as Paid Automation', () => {
       expect(screen.queryByText('Gym Membership')).not.toBeInTheDocument();
     });
     expect(await db.recurringPayments.get('rec_active')).toBeUndefined();
+  });
+
+  it('sorts future commitments in descending order by default and allows toggling to ascending and back', async () => {
+    const today = new Date();
+    const future2Mos = format(addMonths(today, 2), 'yyyy-MM-dd');
+    const future4Mos = format(addMonths(today, 4), 'yyyy-MM-dd');
+    const future6Mos = format(addMonths(today, 6), 'yyyy-MM-dd');
+
+    await initializeDatabase();
+    await db.recurringPayments.bulkAdd([
+      makeRecurringPayment({
+        id: 'rec_cloud',
+        title: 'Cloud Backup',
+        amount: 10,
+        nextDueDate: future2Mos,
+        isActive: true
+      }),
+      makeRecurringPayment({
+        id: 'rec_domain',
+        title: 'Domain Renewal',
+        amount: 25,
+        nextDueDate: future4Mos,
+        isActive: true
+      }),
+      makeRecurringPayment({
+        id: 'rec_car',
+        title: 'Car Insurance',
+        amount: 120,
+        nextDueDate: future6Mos,
+        isActive: true
+      })
+    ]);
+
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /bills/i }));
+    expect(await screen.findByText('Future Commitments (3)')).toBeInTheDocument();
+
+    // Verify sort controls are rendered and default is 'desc'
+    const descButton = screen.getByRole('button', { name: /desc/i });
+    const ascButton = screen.getByRole('button', { name: /asc/i });
+    expect(descButton).toBeInTheDocument();
+    expect(ascButton).toBeInTheDocument();
+
+    // In default desc order: Car Insurance (6 mos) -> Domain Renewal (4 mos) -> Cloud Backup (2 mos)
+    const titlesDefault = screen.getAllByText(/Car Insurance|Domain Renewal|Cloud Backup/).map(el => el.textContent);
+    expect(titlesDefault).toEqual(['Car Insurance', 'Domain Renewal', 'Cloud Backup']);
+
+    // Switch to asc
+    await user.click(ascButton);
+
+    // In asc order: Cloud Backup (2 mos) -> Domain Renewal (4 mos) -> Car Insurance (6 mos)
+    const titlesAsc = screen.getAllByText(/Car Insurance|Domain Renewal|Cloud Backup/).map(el => el.textContent);
+    expect(titlesAsc).toEqual(['Cloud Backup', 'Domain Renewal', 'Car Insurance']);
+    expect(localStorage.getItem('aibudget_future_commitments_sort')).toBe('asc');
+
+    // Switch back to desc
+    await user.click(descButton);
+    const titlesDesc = screen.getAllByText(/Car Insurance|Domain Renewal|Cloud Backup/).map(el => el.textContent);
+    expect(titlesDesc).toEqual(['Car Insurance', 'Domain Renewal', 'Cloud Backup']);
+    expect(localStorage.getItem('aibudget_future_commitments_sort')).toBe('desc');
   });
 });

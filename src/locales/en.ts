@@ -101,6 +101,8 @@ export const en = {
     dueInNext7Days: 'Due in Next 7 Days',
     dueLaterThisMonth: 'Due Later This Month',
     upcomingLater: 'Future Commitments',
+    sortDesc: 'Desc',
+    sortAsc: 'Asc',
     pauseBill: 'Pause',
     resumeBill: 'Resume',
     noBillsFound: 'No recurring bills set up yet',

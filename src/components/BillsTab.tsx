@@ -9,7 +9,9 @@ import {
   Flame,
   Clock,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +43,16 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const [filterActiveOnly, setFilterActiveOnly] = useState(true);
+  const [futureSortOrder, setFutureSortOrder] = useState<'desc' | 'asc'>(() => {
+    const saved = localStorage.getItem('aibudget_future_commitments_sort');
+    return saved === 'asc' || saved === 'desc' ? saved : 'desc';
+  });
+
+  const handleSortChange = (order: 'desc' | 'asc') => {
+    triggerHaptic(5);
+    setFutureSortOrder(order);
+    localStorage.setItem('aibudget_future_commitments_sort', order);
+  };
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, Category>();
@@ -89,14 +101,19 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 
     within7.sort((a, b) => a.daysLeft - b.daysLeft);
     thisMonth.sort((a, b) => a.daysLeft - b.daysLeft);
-    later.sort((a, b) => a.daysLeft - b.daysLeft);
+
+    if (futureSortOrder === 'desc') {
+      later.sort((a, b) => b.daysLeft - a.daysLeft || b.nextDueDate.localeCompare(a.nextDueDate));
+    } else {
+      later.sort((a, b) => a.daysLeft - b.daysLeft || a.nextDueDate.localeCompare(b.nextDueDate));
+    }
 
     return {
       dueWithin7Days: within7,
       dueThisMonth: thisMonth,
       laterCommitments: later
     };
-  }, [recurring, filterActiveOnly]);
+  }, [recurring, filterActiveOnly, futureSortOrder]);
 
   const handleMarkPaid = async (e: React.MouseEvent, bill: RecurringPayment) => {
     e.stopPropagation();
@@ -382,8 +399,40 @@ export const BillsTab: React.FC<BillsTabProps> = ({
 
       {/* Section 3: Later Commitments */}
       <div className="space-y-2 pt-2">
-        <div className="flex items-center gap-2 px-1 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
-          <Repeat size={14} /> {t('bills.upcomingLater')} ({laterCommitments.length})
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
+            <Repeat size={14} /> {t('bills.upcomingLater')} ({laterCommitments.length})
+          </div>
+          <div className="flex items-center bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/80 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => handleSortChange('desc')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                futureSortOrder === 'desc'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={t('bills.sortDesc')}
+              aria-label="Sort descending"
+            >
+              <ArrowDown size={12} />
+              <span>{t('bills.sortDesc')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSortChange('asc')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                futureSortOrder === 'asc'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={t('bills.sortAsc')}
+              aria-label="Sort ascending"
+            >
+              <ArrowUp size={12} />
+              <span>{t('bills.sortAsc')}</span>
+            </button>
+          </div>
         </div>
         {laterCommitments.length === 0 ? (
           <div className="py-4 px-4 text-xs text-slate-500 dark:text-neutral-500 bg-white/70 dark:bg-neutral-900/40 rounded-2xl border border-slate-200/70 dark:border-white/5">

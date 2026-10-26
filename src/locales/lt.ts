@@ -101,6 +101,8 @@ export const lt = {
     dueInNext7Days: 'Mokėtinos per 7 dienas',
     dueLaterThisMonth: 'Kitos šio mėnesio sąskaitos',
     upcomingLater: 'Būsimi įsipareigojimai',
+    sortDesc: 'Mažėjančia',
+    sortAsc: 'Didėjančia',
     pauseBill: 'Sustabdyti',
     resumeBill: 'Aktyvuoti',
     noBillsFound: 'Periodinių sąskaitų dar nėra',
