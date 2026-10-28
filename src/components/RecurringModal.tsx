@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import type { RecurringPayment, Category, BillingCycle } from '../types';
 import { db } from '../db/db';
-import { triggerHaptic, getCategoryDisplayName } from '../lib/calculations';
+import { triggerHaptic, getCategoryDisplayName, cleanAmountInput, parseAmountInput } from '../lib/calculations';
 
 interface RecurringModalProps {
   isOpen: boolean;
@@ -73,10 +73,17 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleAmountChange = (raw: string) => {
+    const next = cleanAmountInput(raw);
+    if (next !== null) {
+      setAmountStr(next);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = Math.abs(parseFloat(amountStr));
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = parseAmountInput(amountStr);
+    if (parsedAmount <= 0) {
       alert(t('recurringModal.enterValidAmount'));
       return;
     }
@@ -175,11 +182,11 @@ export const RecurringModal: React.FC<RecurringModalProps> = ({
             <div className="inline-flex items-center justify-center gap-1 max-w-full">
               <span className="text-3xl font-light text-slate-400 dark:text-neutral-400 shrink-0">€</span>
               <input
-                type="number"
-                step="any"
+                type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 value={amountStr}
-                onChange={e => setAmountStr(e.target.value)}
+                onChange={e => handleAmountChange(e.target.value)}
                 placeholder="0.00"
                 className="text-4xl font-extrabold font-mono tracking-tight bg-transparent text-center focus:outline-none w-48 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />

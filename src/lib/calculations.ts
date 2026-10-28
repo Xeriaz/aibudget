@@ -437,3 +437,45 @@ export function getCategoryDisplayName(
   }
   return cat.name;
 }
+
+/**
+ * Cleans user input for amount fields, allowing digits and a single decimal separator (dot or comma).
+ * Returns null if the change should be rejected (e.g. typing duplicate separators).
+ */
+export function cleanAmountInput(val: string): string | null {
+  if (!val) return '';
+  // Strip any characters that are not digits, comma, or dot
+  const cleaned = val.replace(/[^0-9.,]/g, '');
+  if (!cleaned) return '';
+
+  // If ends with multiple consecutive separators like "43.," or "43,,", replace with the latest one
+  const sanitized = cleaned.replace(/[.,]{2,}$/, cleaned.slice(-1));
+
+  const separatorMatches = sanitized.match(/[.,]/g);
+  if (separatorMatches && separatorMatches.length > 1) {
+    return null;
+  }
+  return sanitized;
+}
+
+/**
+ * Parses a string amount (which may contain comma or dot as decimal separator) into a rounded positive number.
+ */
+export function parseAmountInput(input: string): number {
+  if (!input) return 0;
+  const normalized = input.replace(',', '.').trim();
+  const parsed = parseFloat(normalized);
+  if (isNaN(parsed)) return 0;
+  return Math.round(Math.abs(parsed) * 100) / 100;
+}
+
+/**
+ * Adds an increment to the current amount string, preserving comma notation if the user typed comma.
+ */
+export function addAmountShortcut(currentStr: string, inc: number): string {
+  const hasComma = currentStr.includes(',');
+  const curr = parseAmountInput(currentStr);
+  const sum = Math.round((curr + inc) * 100) / 100;
+  const formatted = sum.toFixed(sum % 1 !== 0 ? 2 : 0);
+  return hasComma ? formatted.replace('.', ',') : formatted;
+}

@@ -47,7 +47,7 @@ describe('Flow 4: Recurring Bills & Mark as Paid Automation', () => {
     expect(screen.getByText('€480.00')).toBeInTheDocument();
 
     // Open Add Bill modal
-    await user.click(screen.getByRole('button', { name: /add bill/i }));
+    await user.click(screen.getAllByRole('button', { name: /add bill/i })[0]);
     expect(
       screen.getByRole('heading', { name: /add recurring commitment/i })
     ).toBeInTheDocument();
@@ -339,5 +339,33 @@ describe('Flow 4: Recurring Bills & Mark as Paid Automation', () => {
     await user.click(dueDateBtn);
     expect(localStorage.getItem('aibudget_bills_sort_by')).toBe('dueDate');
     expect(screen.queryByText(/bills by price/i)).not.toBeInTheDocument();
+  });
+
+  it('allows decimal amount with comma (e.g. 43,43) when creating a recurring payment', async () => {
+    await initializeDatabase();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    await user.click(screen.getByRole('button', { name: /bills/i }));
+    await user.click(screen.getAllByRole('button', { name: /add bill/i })[0]);
+
+    const amountInput = screen.getByPlaceholderText('0.00') as HTMLInputElement;
+    await user.type(amountInput, '43,43');
+    expect(amountInput.value).toBe('43,43');
+
+    const nameInput = screen.getByPlaceholderText(/netflix, gym, rent, internet/i);
+    await user.type(nameInput, 'Gym Membership');
+
+    await user.click(screen.getByRole('button', { name: /create recurring bill/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Gym Membership')).toBeInTheDocument();
+    });
+
+    const recurring = await db.recurringPayments.toArray();
+    const gym = recurring.find(r => r.title === 'Gym Membership');
+    expect(gym).toBeDefined();
+    expect(gym?.amount).toBe(43.43);
   });
 });

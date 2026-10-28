@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Transaction, Category, BucketType } from '../types';
 import { db } from '../db/db';
 import { CategoryIcon, AVAILABLE_ICONS } from './CategoryIcon';
-import { triggerHaptic, resolveCategoryBucket, getCategoryDisplayName } from '../lib/calculations';
+import { triggerHaptic, resolveCategoryBucket, getCategoryDisplayName, cleanAmountInput, parseAmountInput, addAmountShortcut } from '../lib/calculations';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -180,18 +180,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
+  const handleAmountChange = (raw: string) => {
+    const next = cleanAmountInput(raw);
+    if (next !== null) {
+      setAmountStr(next);
+    }
+  };
+
   const handleShortcutAdd = (inc: number) => {
     triggerHaptic(10);
-    const curr = parseFloat(amountStr) || 0;
-    const sum = Math.round((curr + inc) * 100) / 100;
-    const nextVal = sum.toFixed((curr + inc) % 1 !== 0 ? 2 : 0);
-    setAmountStr(nextVal);
+    setAmountStr(prev => addAmountShortcut(prev, inc));
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = Math.abs(parseFloat(amountStr));
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = parseAmountInput(amountStr);
+    if (parsedAmount <= 0) {
       alert(t('transactionModal.enterValidAmount'));
       return;
     }
@@ -367,12 +371,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <div className="inline-flex items-center justify-center gap-1 max-w-full">
               <span className="text-3xl font-light text-slate-400 dark:text-neutral-400 shrink-0">€</span>
               <input
-                type="number"
-                step="any"
+                type="text"
                 inputMode="decimal"
+                autoComplete="off"
                 autoFocus={!transactionToEdit}
                 value={amountStr}
-                onChange={e => setAmountStr(e.target.value)}
+                onChange={e => handleAmountChange(e.target.value)}
                 placeholder="0.00"
                 className="text-5xl font-extrabold font-mono tracking-tight bg-transparent text-center focus:outline-none w-56 max-w-[200px] sm:max-w-xs text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-neutral-700"
               />

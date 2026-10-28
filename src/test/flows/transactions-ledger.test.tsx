@@ -380,4 +380,33 @@ describe('Flow 3: Transaction Lifecycle & Ledger Filtering', () => {
     expect(screen.getByText('Last Year Bonus')).toBeInTheDocument();
     expect(screen.queryByText('January Salary')).not.toBeInTheDocument();
   });
+
+  it('allows decimal payments with comma (e.g. 43,43) and saves exact float amount in database', async () => {
+    await initializeDatabase();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Net Cash Flow');
+
+    // Open TransactionModal
+    await user.click(screen.getByRole('button', { name: /^log$/i }));
+    const amountInput = screen.getByPlaceholderText('0.00') as HTMLInputElement;
+
+    // Type 43,43 (European comma decimal)
+    await user.type(amountInput, '43,43');
+    expect(amountInput.value).toBe('43,43');
+
+    const titleInput = screen.getByPlaceholderText(/supermarket, cafe, rent/i);
+    await user.type(titleInput, 'Dinner with Friends');
+
+    await user.click(screen.getByRole('button', { name: /record transaction/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Log Transaction' })).not.toBeInTheDocument();
+    });
+
+    const txs = await db.transactions.toArray();
+    const dinnerTx = txs.find(t => t.title === 'Dinner with Friends');
+    expect(dinnerTx).toBeDefined();
+    expect(dinnerTx?.amount).toBe(43.43);
+  });
 });

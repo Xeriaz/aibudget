@@ -159,7 +159,11 @@ export function parseCsvFile(csvText: string): CsvParsedTransaction[] {
     const title = rawTitle || `Transaction #${i}`;
 
     const rawAmountStr = amountIdx !== -1 ? unquoteCsvValue(values[amountIdx]) : '';
-    let rawAmount = rawAmountStr ? parseFloat(rawAmountStr.replace(/[^0-9.-]/g, '')) : 0;
+    let normalizedAmount = rawAmountStr;
+    if (normalizedAmount.includes(",") && !normalizedAmount.includes(".")) {
+      normalizedAmount = normalizedAmount.replace(",", ".");
+    }
+    let rawAmount = normalizedAmount ? parseFloat(normalizedAmount.replace(/[^0-9.-]/g, "")) : 0;
 
     let type: 'income' | 'expense' = 'expense';
     if (typeIdx !== -1 && values[typeIdx]) {

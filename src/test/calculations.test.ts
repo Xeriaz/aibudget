@@ -8,7 +8,10 @@ import {
   resolveCategoryBucket,
   getFrameworkPercentages,
   calculateMonthSummary,
-  calculateYearlyCashFlow
+  calculateYearlyCashFlow,
+  cleanAmountInput,
+  parseAmountInput,
+  addAmountShortcut
 } from '../lib/calculations';
 import { db, DEFAULT_CATEGORIES, DEFAULT_SETTINGS } from '../db/db';
 import {
@@ -26,6 +29,43 @@ describe('Flow 2: Financial Calculations & Budget Engine', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  describe('Amount parsing and cleaning (supports comma and dot decimal separators)', () => {
+    it('cleanAmountInput allows digits and a single decimal separator (comma or dot)', () => {
+      expect(cleanAmountInput('')).toBe('');
+      expect(cleanAmountInput('43')).toBe('43');
+      expect(cleanAmountInput('43,')).toBe('43,');
+      expect(cleanAmountInput('43,43')).toBe('43,43');
+      expect(cleanAmountInput('43.')).toBe('43.');
+      expect(cleanAmountInput('43.43')).toBe('43.43');
+      expect(cleanAmountInput('€ 43,43')).toBe('43,43');
+      expect(cleanAmountInput('43.,')).toBe('43,');
+      expect(cleanAmountInput('43,.')).toBe('43.');
+      expect(cleanAmountInput('43,43,')).toBeNull();
+      expect(cleanAmountInput('43.43.')).toBeNull();
+      expect(cleanAmountInput('43,43.1')).toBeNull();
+    });
+
+    it('parseAmountInput parses decimal strings with either comma or dot into rounded numbers', () => {
+      expect(parseAmountInput('')).toBe(0);
+      expect(parseAmountInput('0')).toBe(0);
+      expect(parseAmountInput('43')).toBe(43);
+      expect(parseAmountInput('43,43')).toBe(43.43);
+      expect(parseAmountInput('43.43')).toBe(43.43);
+      expect(parseAmountInput(',5')).toBe(0.5);
+      expect(parseAmountInput('.5')).toBe(0.5);
+      expect(parseAmountInput('43,435')).toBe(43.44);
+      expect(parseAmountInput('invalid')).toBe(0);
+    });
+
+    it('addAmountShortcut increments amount while preserving comma or dot notation', () => {
+      expect(addAmountShortcut('43,43', 5)).toBe('48,43');
+      expect(addAmountShortcut('43.43', 5)).toBe('48.43');
+      expect(addAmountShortcut('10', 5)).toBe('15');
+      expect(addAmountShortcut('', 20)).toBe('20');
+      expect(addAmountShortcut('12,55', 5)).toBe('17,55');
+    });
   });
 
   describe('formatCurrency & getMonthlyMultiplier', () => {
